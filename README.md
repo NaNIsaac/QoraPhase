@@ -44,6 +44,25 @@ result = problem.reconstruct(recipe)
 
 The first positional argument of an algorithm is always its iteration count.
 
+`qp.detwin(...)` runs its body against a support cut in half at the object's
+centre of mass, then restores the full support. That cut is not centrosymmetric,
+so it fits only one of the two conjugate solutions and biases the run into a
+branch. The default recipe places it a quarter of the way through the RAAR
+cycles, where PyNX puts it. It is measurably useful when the support is
+symmetric and the run would otherwise stall, and harmless when it is not — but
+a support with the right shape is worth far more than any detwinning.
+
+`qp.Shrinkwrap(threshold, sigma, method)` takes `method="max"` (classic, relative
+to the peak amplitude) or `method="rms"` (relative to the rms inside the current
+support, less easily thrown off by a hot pixel). The thresholds are on different
+scales: the classic `"max"` value is 0.2, PyNX uses 0.28 for `"rms"`.
+
+The defaults are `0.3, 1.0` rather than the classic `0.2, 2.0`. Starting from an
+autocorrelation support — the case that actually needs shrinkwrap — 0.2 / 2.0
+never converged in testing and 0.3 / 1.0 did, on every object tried. That is a
+measurement on synthetic data, not a law. **These two numbers are the first thing
+to re-tune on a real dataset.**
+
 ## Multi-start
 
 Multi-start is a core feature, not an add-on — for a support with awkward
@@ -70,11 +89,70 @@ A model needs `forward` / `adjoint` and should be unitary. A *wrong* model fails
 silently — it can fit the data perfectly and return the wrong object — so this
 is worth getting right. See `tests/test_forward_model.py`.
 
-## What v0.1 does not do
+## Before you trust a reconstruction
 
-- No twin-image, translation, or global-phase removal. Results are defined only
-  up to those three transforms, so `result.phase` is **not** an absolute phase
-  and runs must not be averaged without alignment (spec 14.1).
+Check the measurement against the assumptions the library makes about it:
+
+```python
+print(qp.diagnose(intensity, mask=mask, support=support))
+```
+
+It reports the centring offset two ways (brightest pixel, and Friedel symmetry,
+which resolves half a pixel and works on patterns with no dominant peak), how
+much of the array the autocorrelation fills, the negative and masked fractions,
+and warns about each. An off-centre pattern is the failure that costs the most
+and shows the least.
+
+`examples/diagnose.py` does the same from the command line, then reconstructs
+and reports whether independent starts agree:
+
+```
+python examples/diagnose.py scan.npz --key intensity --support sup.npy --starts 8
+```
+
+A low Fourier error says a run fits the data. Agreement between starts, after
+alignment, is what says the answer is determined — they are different claims and
+only the second one is worth much.
+
+## Combining runs
+
+A reconstruction is determined only up to a global phase, a translation, and a
+conjugate flip. No iteration can remove those — they are exact symmetries of the
+constraints — so they are resolved afterwards:
+
+```python
+aligned = ensemble.align()      # every run brought onto the best one
+mean = ensemble.average()       # coherent mean of the aligned runs
+
+```
+
+**Never average runs without aligning them.** Each carries its own global phase,
+so a raw mean interferes destructively — in practice it throws away about two
+thirds of the amplitude. The direction survives, so a similarity score will not
+warn you; only the amplitude shows it.
+
+`align()` picks a *convention*, not the truth. It adopts whichever conjugate
+branch the best run happens to be in — enough to combine runs, and no claim
+about which branch is real. Nothing in the data distinguishes them: `conj(obj(-r))`
+reproduces the measured intensity exactly. What breaks the tie is the support
+you supply. Hand the solver a reflected support and every start converges just
+as cleanly on the mirrored object, with a flawless error metric and no warning.
+The handedness of your support is an assumption, not a result.
+
+Alignment works to whole pixels.
+
+`result.phase` still carries whatever linear phase the measurement geometry put
+there, and QoraPhase does not remove it. Doing that properly needs the
+diffraction geometry, which arrives with BCDI in v0.3; short of that, any
+"correction" is a guess.
+
+If the twin branch matters to you, break the symmetry during the run rather than
+after it — see `qp.detwin` below.
+
+## What this does not do
+
+- No phase-ramp removal, no sub-pixel alignment, no clustering, no PRTF.
+- No positivity/reality constraint — the object is complex here.
 - No file I/O, no BCDI geometry, no NUFFT, no strain, no autodiff optimisers.
 
 ## Development

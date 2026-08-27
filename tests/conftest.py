@@ -71,6 +71,15 @@ def similarity(a, b):
     return max(_max_correlation(A, B), _max_correlation(flip_about_origin(A), B))
 
 
+def oriented_similarity(a, b):
+    """Agreement in magnitude and phase, *without* accepting the twin.
+
+    Use this to ask which of the two conjugate-flipped branches a result landed
+    in -- a question :func:`complex_similarity` deliberately cannot answer.
+    """
+    return _max_correlation(np.asarray(a), np.asarray(b))
+
+
 def complex_similarity(a, b):
     """Agreement in magnitude *and* phase, up to the CDI ambiguities (spec 14.1).
 

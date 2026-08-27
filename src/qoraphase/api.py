@@ -7,6 +7,7 @@ import jax
 from jax import lax
 
 from .algorithms.er import ER
+from .algorithms.hio import HIO
 from .algorithms.raar import RAAR
 from .core.ensemble import Ensemble
 from .core.problem import CDI
@@ -14,12 +15,26 @@ from .core.result import Reconstruction
 from .core.state import initial_state
 from .core.validate import check_run
 from .operators.shrinkwrap import Shrinkwrap
-from .recipes.recipe import Recipe, repeat
+from .recipes.recipe import Recipe, detwin, repeat
 
 
 def default_recipe() -> Recipe:
-    """Shrinkwrapped RAAR followed by ER (spec 6)."""
-    return Recipe(repeat(10, RAAR(50), Shrinkwrap()), ER(200))
+    """RAAR, a detwin pass, then shrinkwrapped RAAR and ER (spec 6).
+
+    The detwin runs before shrinkwrap starts updating the support.  At the
+    shrinkwrap settings shipped here the order makes little difference either
+    way; it matters a great deal at looser settings, where a support that is
+    still bloated gets cut in half and shrinkwrap -- which can only shrink --
+    locks the fragment in.  Doing the cut first is simply the order with fewer
+    ways to go wrong.
+    """
+    return Recipe(
+        RAAR(50),
+        detwin(HIO(20)),
+        RAAR(50),
+        repeat(8, RAAR(50), Shrinkwrap()),
+        ER(200),
+    )
 
 
 def _run_single(problem, recipe, key):
@@ -50,7 +65,7 @@ def run(problem: CDI, recipe=None, *, starts=1, batch=None, seed=None):
     runs = tuple(
         Reconstruction(objects[i], supports[i], metrics[i]) for i in range(starts)
     )
-    return runs[0] if starts == 1 else Ensemble(runs)
+    return runs[0] if starts == 1 else Ensemble(runs, problem)
 
 
 @overload

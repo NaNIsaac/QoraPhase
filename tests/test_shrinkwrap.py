@@ -2,6 +2,7 @@
 
 import jax.numpy as jnp
 import numpy as np
+import pytest
 
 from conftest import make_data
 from qoraphase import Shrinkwrap
@@ -52,3 +53,55 @@ def test_shrinkwrap_tightens_a_loose_support(data):
     assert new_support.sum() < loose.sum()
     assert new_support.sum() >= support.sum() * 0.5
     assert new_support[support].mean() > 0.9  # still covers the object
+
+
+@pytest.mark.parametrize("spike", [10.0, 50.0, 200.0])
+def test_rms_threshold_is_less_sensitive_to_a_bright_outlier(spike):
+    """Why 'rms' exists: 'max' keys off a single pixel, 'rms' off the bulk.
+
+    A hot spot drags the 'max' reference up and starves the support.  It is not
+    that rms ignores it -- the spike sits inside the support, so it lifts the
+    rms too -- but it is diluted over every pixel instead of setting the
+    reference single-handedly.  At a 50x spike the support keeps 84% of its
+    pixels under 'rms' against 57% under 'max'.
+    """
+    obj, support, _ = make_data()
+    spiked = np.asarray(obj).copy()
+    spiked[16, 16] = spike
+
+    def sizes(method, threshold):
+        out = []
+        for array in (obj, spiked):
+            state = ReconState(
+                obj=jnp.asarray(array),
+                support=jnp.asarray(support),
+                iteration=jnp.int32(0),
+                key=None,
+            )
+            updated, _ = Shrinkwrap(threshold, 2.0, method).run(state, None)
+            out.append(int(np.asarray(updated.support).sum()))
+        return out
+
+    clean_max, spiked_max = sizes("max", 0.2)
+    clean_rms, spiked_rms = sizes("rms", 0.28)
+
+    assert spiked_rms / clean_rms > spiked_max / clean_max
+
+
+def test_rms_threshold_produces_a_usable_support():
+    obj, support, _ = make_data()
+    state = ReconState(
+        obj=jnp.asarray(obj),
+        support=jnp.asarray(support),
+        iteration=jnp.int32(0),
+        key=None,
+    )
+    updated, _ = Shrinkwrap(0.28, 1.0, "rms").run(state, None)
+    updated = np.asarray(updated.support)
+    assert 0 < updated.sum() < updated.size
+    assert updated[support].mean() > 0.9
+
+
+def test_unknown_threshold_method_is_rejected():
+    with pytest.raises(ValueError, match="max.*rms"):
+        Shrinkwrap(method="mean")

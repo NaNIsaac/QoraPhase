@@ -70,7 +70,7 @@ def test_runs_without_a_support(data):
 def test_default_recipe_runs(data):
     _, support, intensity = data
     result = qp.reconstruct(intensity, support=support)
-    assert result.metrics.size == 10 * 50 + 200
+    assert result.metrics.size == 50 + 20 + 50 + 8 * 50 + 200
 
 
 def test_problem_object_api(data):

@@ -79,10 +79,41 @@ class Repeat(Stage):
         return state, metrics.reshape(-1)
 
 
+@dataclass(frozen=True)
+class Detwin(Stage):
+    """Run ``body`` against a support cut in half, then restore the support.
+
+    The twin ``conj(obj(-r))`` fits the measurement exactly, so nothing in the
+    data prefers one branch; a centrosymmetric support does not separate them
+    either and the iteration stalls in a mixture.  Halving the support removes
+    that symmetry for a few cycles and biases the solution into one branch, after
+    which the full support is restored.
+
+    Which branch it lands in follows from the cut, not from the data
+    (spec 14.1).
+    """
+
+    body: Recipe
+    axis: int = 0
+
+    def run(self, state, problem):
+        from ..operators.support import half_support
+
+        cut = half_support(state.support, self.axis)
+        after, metrics = self.body.run(state._replace(support=cut), problem)
+        return after._replace(support=state.support), metrics
+
+
 def repeat(n: int, *stages) -> Repeat:
     """``qp.repeat(10, qp.RAAR(50), qp.Shrinkwrap())``"""
     return Repeat(n, Recipe(*stages))
 
 
+def detwin(*stages, axis: int = 0) -> Detwin:
+    """``qp.detwin(qp.HIO(20))`` -- break the twin symmetry, then carry on."""
+    return Detwin(Recipe(*stages), axis)
+
+
 jax.tree_util.register_dataclass(Recipe, data_fields=["stages"], meta_fields=[])
 jax.tree_util.register_dataclass(Repeat, data_fields=["body"], meta_fields=["n"])
+jax.tree_util.register_dataclass(Detwin, data_fields=["body"], meta_fields=["axis"])

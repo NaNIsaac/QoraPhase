@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 
 import qoraphase as qp
-from conftest import flip_about_origin, make_data, similarity
+from conftest import (
+    flip_about_origin,
+    make_data,
+    oriented_similarity,
+    similarity,
+)
 from qoraphase.core.state import ReconState
 
 ALGORITHMS = [qp.ER, qp.HIO, qp.RAAR]
@@ -99,3 +104,34 @@ def test_centrosymmetric_support_collapses_the_success_rate():
 
     assert success_rate(triangular, tri_intensity) >= 0.875
     assert success_rate(symmetric, sym_intensity) <= 0.25
+
+
+def test_the_support_alone_decides_the_twin_branch():
+    """The data cannot tell an object from its twin; the support does.
+
+    ``conj(obj(-r))`` reproduces the measured intensity exactly, so nothing in
+    the diffraction pattern prefers one over the other.  What breaks the tie is
+    the support: a non-centrosymmetric support fits only one of the two.
+
+    Hand it the reflected support and every start converges, just as cleanly, on
+    the twin -- a mirrored object with a flawless error metric and no warning.
+    The handedness of the support you supply is an assumption, not a result.
+    """
+    obj, support, intensity = make_data(m=10, seed=3)
+    reflected = flip_about_origin(support)
+    mirror = np.conj(flip_about_origin(obj))
+
+    upright = qp.reconstruct(intensity, support=support, recipe=RECOVERY, starts=4)
+    flipped = qp.reconstruct(intensity, support=reflected, recipe=RECOVERY, starts=4)
+
+    # Both fit the measurement equally well.
+    assert upright.best.error < 1e-3
+    assert flipped.best.error < 1e-3
+
+    # But they are mirror images of each other, consistently across starts.
+    for run in upright:
+        assert oriented_similarity(run.object, obj) > 0.99
+        assert oriented_similarity(run.object, mirror) < 0.9
+    for run in flipped:
+        assert oriented_similarity(run.object, mirror) > 0.99
+        assert oriented_similarity(run.object, obj) < 0.9

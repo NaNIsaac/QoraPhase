@@ -17,14 +17,17 @@ from .core.ensemble import Ensemble
 from .core.problem import CDI
 from .core.result import Reconstruction
 from .core.state import ReconState
+from .diagnostics import Diagnosis, diagnose
 from .models.fft import FFT
 from .operators.modulus import ModulusProjection
 from .operators.shrinkwrap import Shrinkwrap
 from .operators.support import SupportProjection
-from .recipes.recipe import Recipe, repeat
+from .postprocess import align_to
+from .recipes.recipe import Recipe, detwin, repeat
 
 __all__ = [
     "CDI",
+    "Diagnosis",
     "ER",
     "FFT",
     "HIO",
@@ -36,7 +39,10 @@ __all__ = [
     "Recipe",
     "Shrinkwrap",
     "SupportProjection",
+    "align_to",
     "default_recipe",
+    "detwin",
+    "diagnose",
     "reconstruct",
     "repeat",
 ]
