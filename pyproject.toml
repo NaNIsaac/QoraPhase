@@ -45,8 +45,3 @@ dev = ["pytest>=8"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-
-[tool.uv.workspace]
-members = [
-    "QoraGeom",
-]
