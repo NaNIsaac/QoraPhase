@@ -1,6 +1,6 @@
 # QoraPhase
 
-[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Python](https://img.shields.io/pypi/pyversions/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Python](https://img.shields.io/pypi/pyversions/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/NaNIsaac/QoraPhase/blob/main/LICENSE)
 
 A JAX-native, composable phase-retrieval framework for coherent diffraction imaging.
 
@@ -130,7 +130,6 @@ constraints — so they are resolved afterwards:
 ```python
 aligned = ensemble.align()      # every run brought onto the best one
 mean = ensemble.average()       # coherent mean of the aligned runs
-
 ```
 
 **Never average runs without aligning them.** Each carries its own global phase,
@@ -154,7 +153,7 @@ diffraction geometry, which arrives with BCDI in v0.3; short of that, any
 "correction" is a guess.
 
 If the twin branch matters to you, break the symmetry during the run rather than
-after it — see `qp.detwin` below.
+after it — see `qp.detwin` above.
 
 ## What this does not do
 
