@@ -1,5 +1,7 @@
 # QoraPhase
 
+[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Python](https://img.shields.io/pypi/pyversions/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 A JAX-native, composable phase-retrieval framework for coherent diffraction imaging.
 
 **Array in → reconstruction out.** QoraPhase does not read files. You bring a
