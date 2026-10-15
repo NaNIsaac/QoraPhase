@@ -10,7 +10,6 @@ authors:
 license: MIT
 repository-code: "https://github.com/NaNIsaac/QoraPhase"
 abstract: "A JAX-native, composable phase-retrieval framework for coherent diffraction imaging: an intensity array goes in, a reconstruction object comes out."
-license: MIT
 keywords:
   - "phase retrieval"
   - "coherent diffraction imaging"
