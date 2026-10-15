@@ -3,12 +3,17 @@ name = "qoraphase"
 version = "0.1.0"
 description = "A JAX-native, composable phase-retrieval framework for coherent diffraction imaging"
 readme = "README.md"
+authors = [{ name = "Isaac Yong", email = "isaacyong@naver.com" }]
 requires-python = ">=3.12"
 dependencies = [
     "jax>=0.11.1",
     "matplotlib>=3.11.1",
     "numpy>=2.5.2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/NaNIsaac/QoraPhase"
+Repository = "https://github.com/NaNIsaac/QoraPhase"
 
 [build-system]
 requires = ["hatchling"]

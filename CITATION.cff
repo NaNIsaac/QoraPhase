@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "QoraPhase: A JAX-native, composable phase-retrieval framework for coherent diffraction imaging"
+authors:
+  - family-names: Yong
+    given-names: Isaac
+    email: isaacyong@naver.com
+    affiliation: "Sogang University"
+repository-code: "https://github.com/NaNIsaac/QoraPhase"
+abstract: "A JAX-native, composable phase-retrieval framework for coherent diffraction imaging: an intensity array goes in, a reconstruction object comes out."
+keywords:
+  - "phase retrieval"
+  - "coherent diffraction imaging"
+  - "CDI"
+  - "JAX"
+  - "X-ray"
+version: "0.1.0"
+date-released: "2026-08-28"
