@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Design specs (local only)
+QoraPhase 설계 명세서*.md
