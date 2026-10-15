@@ -1,19 +1,25 @@
 # QoraPhase
 
-[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Python](https://img.shields.io/pypi/pyversions/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/NaNIsaac/QoraPhase/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/NaNIsaac/QoraPhase/blob/main/LICENSE)
 
-A JAX-native, composable phase-retrieval framework for coherent diffraction imaging.
+**Phase retrieval for coherent diffraction imaging in JAX: pass a diffraction intensity array, get the complex object back.**
 
-**Array in → reconstruction out.** QoraPhase does not read files. You bring a
-`numpy` or `jax` array; it gives you back an object.
+![Simulated object, its diffraction intensity, and the reconstruction](https://raw.githubusercontent.com/NaNIsaac/QoraPhase/main/docs/reconstruction.png)
 
-## Install
+A 64×64 simulated object (24-pixel triangle with an amplitude dip and a phase
+bump), its noiseless intensity, and the best of 8 random starts from
+`qp.reconstruct(intensity, starts=8)`: default recipe, 720 iterations, CPU, and
+no support given — it is derived from the autocorrelation and shrinkwrapped.
+Aligned to the true object with `qp.align_to` for display; relative error
+7.9e-7. Regenerate with `python examples/readme_figure.py`.
+
+## Quick start
+
+Requires Python 3.12+.
 
 ```bash
 pip install qoraphase
 ```
-
-## Quick start
 
 ```python
 import qoraphase as qp
@@ -21,6 +27,11 @@ import qoraphase as qp
 result = qp.reconstruct(intensity, support=support)
 result.plot()
 ```
+
+**Array in → reconstruction out.** QoraPhase does not read files. You bring a
+`numpy` or `jax` array; it gives you back an object. Iterative algorithms (ER,
+HIO, RAAR), shrinkwrap, detwinning and multi-start are composable pieces of a
+recipe, and multi-start runs are vectorised with `vmap`.
 
 ## Array conventions (read this first)
 
