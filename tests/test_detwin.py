@@ -172,7 +172,10 @@ def test_the_default_recipe_finds_the_object_without_a_support():
 
     Only some starts get there, which is the point of running several.
     """
+    # About 1 start in 5 converges here (measured on Linux and Windows). With 8
+    # starts, "none did" is a ~20% outcome and platform FFT rounding decides it;
+    # 32 starts make that ~0.3%.
     obj, _, intensity = make_data(m=10, seed=3)
-    ensemble = qp.reconstruct(intensity, starts=8, seed=0)
+    ensemble = qp.reconstruct(intensity, starts=32, seed=0)
     assert ensemble.best.error < 1e-4
     assert complex_similarity(ensemble.best.object, obj) > 0.99
