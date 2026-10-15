@@ -5,6 +5,14 @@ A JAX-native, composable phase-retrieval framework for coherent diffraction imag
 **Array in → reconstruction out.** QoraPhase does not read files. You bring a
 `numpy` or `jax` array; it gives you back an object.
 
+## Install
+
+```bash
+pip install qoraphase
+```
+
+## Quick start
+
 ```python
 import qoraphase as qp
 
