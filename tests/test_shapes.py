@@ -1,4 +1,4 @@
-"""3D and non-cubic support, end to end (spec 2, 4.6)."""
+"""3D and non-cubic support, end to end."""
 
 import numpy as np
 import pytest

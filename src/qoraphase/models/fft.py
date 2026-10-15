@@ -7,9 +7,9 @@ import jax.numpy as jnp
 
 @dataclass(frozen=True)
 class FFT:
-    """Unitary centered FFT (spec 9).
+    """Unitary centered FFT.
 
-    All public arrays are center-origin (spec 4.1): index ``n // 2`` is the
+    All public arrays are center-origin: index ``n // 2`` is the
     origin.  The ``ifftshift`` / ``fftshift`` sandwich is entirely internal, so
     users never call ``fftshift`` themselves.
 

@@ -1,4 +1,4 @@
-"""Stage protocol and declarative Recipe (spec 11, 12).
+"""Stage protocol and declarative Recipe.
 
 Code order is execution order.  No operator-overloading DSL.
 """
@@ -28,7 +28,7 @@ class Iterative(Stage):
     """A stage that repeats ``step`` ``n`` times under ``lax.scan``.
 
     ``n`` is the scan length and therefore static: changing it recompiles
-    (spec 13.1).
+   .
     """
 
     n: int
@@ -90,7 +90,7 @@ class Detwin(Stage):
     which the full support is restored.
 
     Which branch it lands in follows from the cut, not from the data
-    (spec 14.1).
+   .
     """
 
     body: Recipe

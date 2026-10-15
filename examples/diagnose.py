@@ -2,7 +2,7 @@
 
     python examples/diagnose.py scan.npz --key intensity --mask-key mask
 
-The library never touches files (spec 3), so the loading lives here.  What the
+The library never touches files, so the loading lives here.  What the
 script adds on top of ``qp.diagnose`` is the check that synthetic data can never
 provide: whether independent random starts, once aligned, actually agree with
 each other.  A low Fourier error only says a run fits the data; agreement across

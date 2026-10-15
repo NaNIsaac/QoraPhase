@@ -1,4 +1,4 @@
-"""Pre-flight checks (spec 4).
+"""Pre-flight checks.
 
 A broken centring check is worse than no centring check, so the checks
 themselves get tested against data with a known defect injected.

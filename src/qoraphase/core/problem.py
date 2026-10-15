@@ -1,4 +1,4 @@
-"""The CDI problem: fixed reconstruction inputs (spec 8.1)."""
+"""The CDI problem: fixed reconstruction inputs."""
 
 from dataclasses import dataclass
 
@@ -15,11 +15,11 @@ from .validate import check_inputs
 class CDI:
     """Immutable reconstruction inputs.  Holds no iteration state.
 
-    Constructed from *intensity* (spec 4.2); the stored field is the amplitude
+    Constructed from *intensity*; the stored field is the amplitude
     ``sqrt(clip(intensity, 0))`` so the square root is not recomputed inside the
     iteration loop.
 
-    Registered as a pytree (spec 8.3) so it can cross ``jit`` / ``scan`` /
+    Registered as a pytree so it can cross ``jit`` / ``scan`` /
     ``vmap`` boundaries.  ``model`` is a meta field: it is static and hashable.
     """
 

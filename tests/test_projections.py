@@ -1,4 +1,4 @@
-"""Projection contracts (spec 4.3, 10.1, 10.2)."""
+"""Projection contracts."""
 
 import jax.numpy as jnp
 import numpy as np
@@ -41,7 +41,7 @@ def test_modulus_projection_enforces_measured_magnitude(data, problem):
 def test_masked_pixels_do_not_constrain_the_object(data):
     """Whatever garbage sits under the mask must not change the result.
 
-    This is the spec 4.3 rule: masked pixels keep their computed magnitude
+    Masked pixels keep their computed magnitude
     instead of being forced to the measured (or worse, to zero).
     """
     obj, support, intensity = data
@@ -67,7 +67,7 @@ def test_autocorrelation_support_fits_the_object(data):
     It cannot be expected to cover the object *in place*: the autocorrelation is
     ``S (+) -S``, always centred at the origin, so what it has to contain is a
     translate of the object support -- which is all that matters, since the
-    solution is only defined up to a translation anyway (spec 14.1).
+    solution is only defined up to a translation anyway.
     """
     obj, support, intensity = data
     auto = np.asarray(autocorrelation_support(jnp.asarray(intensity), 0.1))

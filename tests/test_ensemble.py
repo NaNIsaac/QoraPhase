@@ -1,4 +1,4 @@
-"""Ensemble collection protocol (spec 15)."""
+"""Ensemble collection protocol."""
 
 import jax.numpy as jnp
 import pytest

@@ -1,4 +1,4 @@
-"""Error metrics (spec 10.3)."""
+"""Error metrics."""
 
 import jax.numpy as jnp
 
@@ -16,7 +16,7 @@ def fourier_error(
 
     Takes the already-computed magnitude rather than the object, so that
     ModulusProjection can hand over the FFT it has already paid for
-    (spec 10.3 -- computing this separately would double the FFT cost).
+    (computing this separately would double the FFT cost).
     """
     valid = ~mask
     num = jnp.sum(jnp.where(valid, (computed_magnitude - amplitude) ** 2, 0.0))

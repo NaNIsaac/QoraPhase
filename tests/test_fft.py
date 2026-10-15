@@ -1,4 +1,4 @@
-"""Forward model contract (spec 4.1, 9)."""
+"""Forward model contract."""
 
 import jax.numpy as jnp
 import numpy as np

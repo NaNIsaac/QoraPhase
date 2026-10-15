@@ -1,4 +1,4 @@
-"""Public projection handles and plotting (spec 10, 14.2, 20)."""
+"""Public projection handles and plotting."""
 
 import jax.numpy as jnp
 import matplotlib
@@ -31,7 +31,7 @@ def test_support_projection_handle_matches_the_function(data):
 
 
 def test_every_advertised_symbol_is_importable():
-    """Spec 20: the public surface is what ``import qoraphase as qp`` gives you."""
+    """The public surface is what ``import qoraphase as qp`` gives you."""
     for name in qp.__all__:
         assert getattr(qp, name) is not None
 

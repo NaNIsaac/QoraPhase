@@ -1,4 +1,4 @@
-"""Recipe composition (spec 11, 12)."""
+"""Recipe composition."""
 
 import jax
 import numpy as np

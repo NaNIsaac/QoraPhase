@@ -1,4 +1,4 @@
-"""Input validation (spec 18)."""
+"""Input validation."""
 
 import numpy as np
 import pytest

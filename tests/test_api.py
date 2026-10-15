@@ -1,4 +1,4 @@
-"""Public entry point behaviour (spec 6, 13.2, 16)."""
+"""Public entry point behaviour."""
 
 import numpy as np
 import pytest
@@ -52,7 +52,7 @@ def test_starts_are_independent(data):
 
 
 def test_batching_matches_unbatched(data):
-    """Chunking multi-start for memory must not change the answer (spec 13.2)."""
+    """Chunking multi-start for memory must not change the answer."""
     _, support, intensity = data
     kwargs = dict(support=support, recipe=FAST, starts=4, seed=1)
     whole = qp.reconstruct(intensity, batch=None, **kwargs)
@@ -74,7 +74,7 @@ def test_default_recipe_runs(data):
 
 
 def test_problem_object_api(data):
-    """The researcher-facing path in spec 6."""
+    """The researcher-facing path."""
     _, support, intensity = data
     problem = qp.CDI(intensity=intensity, support=support)
     result = problem.reconstruct(FAST)
@@ -83,7 +83,7 @@ def test_problem_object_api(data):
 
 
 def test_intensity_is_squared_amplitude(data):
-    """Spec 4.2: the argument is an intensity, not an amplitude."""
+    """The argument is an intensity, not an amplitude."""
     _, support, intensity = data
     problem = qp.CDI(intensity, support=support)
     assert np.allclose(np.asarray(problem.amplitude), np.sqrt(intensity), atol=1e-5)

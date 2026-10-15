@@ -1,4 +1,4 @@
-"""Algorithm contracts and an end-to-end recovery check (spec 10, 14.1)."""
+"""Algorithm contracts and an end-to-end recovery check."""
 
 import jax.numpy as jnp
 import numpy as np
@@ -88,7 +88,7 @@ def success_rate(support, intensity, starts=8, seed=1):
 
 
 def test_centrosymmetric_support_collapses_the_success_rate():
-    """Known limitation, not a regression (spec 14.1) -- and why multi-start is core.
+    """Known limitation, not a regression -- and why multi-start is core.
 
     A support symmetric under ``r -> -r`` fits the object *and* its conjugate
     flip, so most starts stagnate in a mixture of the two.  Individual starts

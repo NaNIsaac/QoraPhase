@@ -1,4 +1,4 @@
-"""Fourier error definition (spec 10.3)."""
+"""Fourier error definition."""
 
 import jax.numpy as jnp
 import numpy as np

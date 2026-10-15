@@ -1,4 +1,4 @@
-"""Multi-start results (spec 15)."""
+"""Multi-start results."""
 
 from dataclasses import dataclass, replace
 
@@ -13,7 +13,7 @@ class Ensemble:
     """A sequence of reconstructions that behaves like a Python collection.
 
     Runs are *not* mutually aligned as they come out of the solver: each one is
-    the object up to its own global phase, translation and twin (spec 14.1).
+    the object up to its own global phase, translation and twin.
     Compare them by error, or call :meth:`align` before doing anything that
     combines them.
 
@@ -50,7 +50,7 @@ class Ensemble:
         The best run supplies the convention, nothing more: if it happens to sit
         in the conjugate-flipped branch, the whole aligned ensemble does too.
         That is fine for combining runs, which is what this is for, and it is not
-        a statement about which branch is real (spec 14.1).
+        a statement about which branch is real.
         """
         reference = self.best.object
         aligned = tuple(

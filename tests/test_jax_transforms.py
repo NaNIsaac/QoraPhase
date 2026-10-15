@@ -1,4 +1,4 @@
-"""Pytree registration and JAX transform compatibility (spec 8.3, 13).
+"""Pytree registration and JAX transform compatibility.
 
 These are the tests that fail first if the pytree contract is broken -- which is
 exactly what happens the moment a parameter becomes an array or a forward model
@@ -69,7 +69,7 @@ def test_vmap_matches_a_python_loop(problem):
 
 
 def test_changing_beta_does_not_retrace(problem):
-    """A traced parameter must reuse the compiled kernel (spec 13.1)."""
+    """A traced parameter must reuse the compiled kernel."""
     state = initial_state(jax.random.key(0), problem)
 
     @jax.jit

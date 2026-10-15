@@ -1,4 +1,4 @@
-"""Shrinkwrap support update (spec 12)."""
+"""Shrinkwrap support update."""
 
 from dataclasses import dataclass
 

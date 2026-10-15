@@ -1,4 +1,4 @@
-"""Hybrid Input-Output (spec 10)."""
+"""Hybrid Input-Output."""
 
 from dataclasses import dataclass
 

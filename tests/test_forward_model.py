@@ -1,4 +1,4 @@
-"""Swapping the forward model without touching the algorithms (spec 9).
+"""Swapping the forward model without touching the algorithms.
 
 This is the load-bearing claim of the architecture: ER/HIO/RAAR never name an
 FFT, so a different forward model should reconstruct a different physics with
@@ -26,7 +26,7 @@ class QuadraticPhase:
     different inverse problem rather than a relabelling.
 
     Holds no arrays, so it stays hashable and can live in a meta field
-    (spec 8.3).
+   .
     """
 
     # 0.1 wraps the phase several times across the object -- enough to separate
@@ -55,7 +55,7 @@ class QuadraticPhase:
 
 
 def test_toy_model_is_unitary():
-    """The adjoint contract from spec 9; everything below depends on it."""
+    """The adjoint contract; everything below depends on it."""
     model = QuadraticPhase()
     obj = jnp.asarray(make_data()[0])
     assert np.allclose(model.adjoint(model.forward(obj)), obj, atol=1e-5)

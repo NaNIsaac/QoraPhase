@@ -20,13 +20,10 @@ result = qp.reconstruct(intensity, support=support)
 result.plot()
 ```
 
-Design details live in `QoraPhase 설계 명세서 v0.2.md`; section numbers below
-refer to it.
-
 ## Array conventions (read this first)
 
 These three are the source of nearly every phase-retrieval bug, so they are part
-of the API contract, not an implementation detail (spec 4).
+of the API contract, not an implementation detail.
 
 | | |
 |---|---|
@@ -82,12 +79,12 @@ best = ensemble.best
 ```
 
 `vmap` holds every start in memory at once. `batch` chunks that: lower it if a
-large 3D volume runs out of GPU memory (spec 13.2).
+large 3D volume runs out of GPU memory.
 
 ## Swapping the forward model
 
 Algorithms never name an FFT, so the physics is replaceable without touching
-them (spec 9):
+them:
 
 ```python
 qp.CDI(intensity, support=support, model=MyPropagator())

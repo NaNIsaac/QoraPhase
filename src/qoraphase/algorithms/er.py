@@ -1,4 +1,4 @@
-"""Error Reduction (spec 10)."""
+"""Error Reduction."""
 
 from dataclasses import dataclass
 

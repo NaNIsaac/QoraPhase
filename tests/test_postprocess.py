@@ -1,4 +1,4 @@
-"""Resolving the CDI ambiguities after the fact (spec 14.1, 23 v0.2)."""
+"""Resolving the CDI ambiguities after the fact."""
 
 import jax.numpy as jnp
 import numpy as np

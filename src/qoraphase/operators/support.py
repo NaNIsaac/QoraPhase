@@ -1,4 +1,4 @@
-"""Support projection and autocorrelation support estimate (spec 7, 10.2)."""
+"""Support projection and autocorrelation support estimate."""
 
 from dataclasses import dataclass
 
@@ -15,7 +15,7 @@ class SupportProjection:
     """Public handle for :func:`support_project`.
 
     v0.1 applies no real/positivity constraint -- the object is complex.  A
-    ``constraint=`` argument belongs here when that changes (spec 10.2).
+    ``constraint=`` argument belongs here when that changes.
     """
 
     def __call__(self, obj, support):
@@ -39,7 +39,7 @@ def half_support(support: jnp.ndarray, axis: int = 0) -> jnp.ndarray:
 
 
 def autocorrelation_support(intensity: jnp.ndarray, threshold: float = 0.1) -> jnp.ndarray:
-    """Default support when the user supplies none (spec 7).
+    """Default support when the user supplies none.
 
     The autocorrelation is about twice the object size, so this is a loose
     starting support and relies on shrinkwrap to tighten it.  A measured support

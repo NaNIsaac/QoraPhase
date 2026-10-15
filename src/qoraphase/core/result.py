@@ -1,4 +1,4 @@
-"""Single reconstruction result (spec 14)."""
+"""Single reconstruction result."""
 
 from dataclasses import dataclass
 
@@ -11,7 +11,7 @@ class Reconstruction:
     """One reconstructed object plus its error history.
 
     The solution is only defined up to a global phase, a translation, and a
-    conjugate flip (twin image) -- see spec 14.1.  ``phase`` is therefore *not*
+    conjugate flip (twin image).  ``phase`` is therefore *not*
     an absolute phase; remove the ramp before interpreting it physically.
     """
 

@@ -1,4 +1,4 @@
-"""Iteration state and initialisation (spec 8.2, 16.1)."""
+"""Iteration state and initialisation."""
 
 from typing import NamedTuple
 
@@ -13,7 +13,7 @@ class ReconState(NamedTuple):
 
     Metrics are deliberately absent: the carry must be fixed-size, and metrics
     grow per iteration.  They come out of ``lax.scan`` as stacked outputs
-    instead (spec 8.2).
+    instead.
     """
 
     obj: jnp.ndarray  # complex, center-origin
@@ -23,7 +23,7 @@ class ReconState(NamedTuple):
 
 
 def random_init(key: jax.Array, problem, support: jnp.ndarray) -> jnp.ndarray:
-    """Measured amplitude with uniformly random phase, back-transformed (spec 16.1)."""
+    """Measured amplitude with uniformly random phase, back-transformed."""
     phase = jax.random.uniform(
         key, problem.amplitude.shape, minval=0.0, maxval=2.0 * jnp.pi
     )

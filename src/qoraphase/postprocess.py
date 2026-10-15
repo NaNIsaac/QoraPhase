@@ -1,4 +1,4 @@
-"""Resolving the CDI ambiguities after a reconstruction (spec 14.1).
+"""Resolving the CDI ambiguities after a reconstruction.
 
 A reconstruction is determined only up to a global phase, a translation, and a
 conjugate flip.  Nothing during iteration can fix that -- all three are exact
@@ -15,7 +15,7 @@ import jax.numpy as jnp
 
 
 def flip_about_origin(x: jnp.ndarray) -> jnp.ndarray:
-    """Reflect ``r -> -r`` for a center-origin array (spec 4.1).
+    """Reflect ``r -> -r`` for a center-origin array.
 
     Reversing the axes is not enough: with the origin at index ``n // 2`` the
     reflection maps ``i`` to ``(n - i) % n``, i.e. the reversal rolled by one.
@@ -60,7 +60,7 @@ def align_to(obj: jnp.ndarray, reference: jnp.ndarray) -> jnp.ndarray:
 
     Alignment is to whole pixels.
     """
-    # ponytail: integer-pixel registration. Sub-pixel needs peak interpolation,
+    # Note: integer-pixel registration. Sub-pixel needs peak interpolation,
     # which only matters once results are being averaged across scans.
     candidates = [_register(obj, reference), _register(twin(obj), reference)]
     return max(candidates, key=lambda c: float(c[1]))[0]

@@ -1,4 +1,4 @@
-"""Relaxed Averaged Alternating Reflections (spec 10)."""
+"""Relaxed Averaged Alternating Reflections."""
 
 from dataclasses import dataclass
 

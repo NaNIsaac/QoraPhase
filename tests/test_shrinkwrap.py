@@ -1,4 +1,4 @@
-"""Shrinkwrap and its Gaussian blur (spec 12)."""
+"""Shrinkwrap and its Gaussian blur."""
 
 import jax.numpy as jnp
 import numpy as np

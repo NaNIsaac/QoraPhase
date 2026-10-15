@@ -1,4 +1,4 @@
-"""Pre-flight checks on a measurement (spec 4).
+"""Pre-flight checks on a measurement.
 
 Everything here takes arrays and returns numbers -- no file handling, no
 reconstruction.  The point is to catch the mistakes that otherwise surface as a
@@ -26,7 +26,7 @@ LOOSE_SUPPORT_FRACTION = 0.5
 
 
 def flip_about_origin(a: np.ndarray) -> np.ndarray:
-    """Reflect ``r -> -r`` for a center-origin array (spec 4.1)."""
+    """Reflect ``r -> -r`` for a center-origin array."""
     return np.roll(a[(slice(None, None, -1),) * a.ndim], 1, axis=tuple(range(a.ndim)))
 
 
@@ -161,7 +161,7 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
     if any(peak) or any(friedel):
         warnings.append(
             f"pattern is off centre (peak {peak}, Friedel {friedel}); QoraPhase "
-            "assumes the origin sits at index n//2 (spec 4.1)"
+            "assumes the origin sits at index n//2"
         )
     if max(fills) > MAX_AUTOCORRELATION_FILL:
         crowded = [i for i, f in enumerate(fills) if f > MAX_AUTOCORRELATION_FILL]
@@ -174,7 +174,7 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
     if np.mean(intensity < 0) > MAX_NEGATIVE_FRACTION:
         warnings.append(
             f"{np.mean(intensity < 0):.1%} of pixels are negative and will be "
-            "clipped to zero; consider masking them instead (spec 4.2)"
+            "clipped to zero; consider masking them instead"
         )
     if not np.all(np.isfinite(intensity)):
         warnings.append("intensity contains NaN or Inf; mask those pixels")

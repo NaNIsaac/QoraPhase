@@ -1,4 +1,4 @@
-"""Host-side validation (spec 18).
+"""Host-side validation.
 
 Runs on concrete numpy arrays before anything is traced, so failures surface as
 plain Python errors with useful messages instead of XLA shape errors.
@@ -30,7 +30,7 @@ def check_inputs(intensity, support, mask) -> None:
     if negative > NEGATIVE_WARN_FRACTION:
         warnings.warn(
             f"{negative:.1%} of intensity pixels are negative and will be clipped to 0; "
-            "consider masking them instead (spec 4.2)",
+            "consider masking them instead",
             stacklevel=3,
         )
 

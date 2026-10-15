@@ -16,7 +16,7 @@ def centered_fft(obj):
 
 
 def flip_about_origin(a):
-    """Reflect ``r -> -r`` for a center-origin array of any ndim (spec 4.1).
+    """Reflect ``r -> -r`` for a center-origin array of any ndim.
 
     Not the same as reversing the axes: with the origin at index ``n // 2`` the
     reflection maps ``i`` to ``(n - i) % n``, which is the reversal rolled by one.
@@ -30,7 +30,7 @@ def make_object(shape=(32, 32), m=10, seed=0, centrosymmetric=False):
 
     The support is a simplex (triangle in 2D, tetrahedron in 3D), not a box, on
     purpose: a centrosymmetric support admits both the object and its twin, and
-    most starts then stagnate in a mixture of the two (spec 14.1).
+    most starts then stagnate in a mixture of the two.
     ``centrosymmetric=True`` keeps the full box, to reproduce that.
     """
     rng = np.random.default_rng(seed)
@@ -81,7 +81,7 @@ def oriented_similarity(a, b):
 
 
 def complex_similarity(a, b):
-    """Agreement in magnitude *and* phase, up to the CDI ambiguities (spec 14.1).
+    """Agreement in magnitude *and* phase, up to the CDI ambiguities.
 
     Needed whenever two candidates share an amplitude but differ in phase --
     for instance an object and the same object under a propagation chirp.

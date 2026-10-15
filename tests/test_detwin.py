@@ -1,4 +1,4 @@
-"""Detwinning by cutting the support in half (spec 14.1).
+"""Detwinning by cutting the support in half.
 
 Follows the established recipe: a short run against a halved support, placed a
 quarter of the way through the iterations, then the full support is restored.

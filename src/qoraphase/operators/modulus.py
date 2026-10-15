@@ -1,4 +1,4 @@
-"""Modulus (Fourier magnitude) projection (spec 4.3, 10.1, 10.3)."""
+"""Modulus (Fourier magnitude) projection."""
 
 from dataclasses import dataclass
 
@@ -14,10 +14,10 @@ def modulus_project(obj: jnp.ndarray, problem):
 
     Returns ``(projected_obj, fourier_error)``.  The error comes for free from
     the forward transform this projection already computed; a separate metric
-    operator would double the FFT cost (spec 10.3).
+    operator would double the FFT cost.
 
     Masked pixels keep their *computed* magnitude -- they are unconstrained, not
-    zero (spec 4.3).
+    zero.
     """
     wave = problem.model.forward(obj)
     magnitude = jnp.abs(wave)

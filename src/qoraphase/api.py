@@ -1,4 +1,4 @@
-"""Public entry point (spec 6, 13, 21)."""
+"""Public entry point."""
 
 from functools import partial
 from typing import Literal, overload
@@ -19,7 +19,7 @@ from .recipes.recipe import Recipe, detwin, repeat
 
 
 def default_recipe() -> Recipe:
-    """RAAR, a detwin pass, then shrinkwrapped RAAR and ER (spec 6).
+    """RAAR, a detwin pass, then shrinkwrapped RAAR and ER.
 
     The detwin runs before shrinkwrap starts updating the support.  At the
     shrinkwrap settings shipped here the order makes little difference either
@@ -89,16 +89,16 @@ def reconstruct(
     """Array in, reconstruction out.
 
     Args:
-        intensity: measured intensity, center-origin (spec 4.1), 2D or 3D.
+        intensity: measured intensity, center-origin, 2D or 3D.
         support: boolean, ``True`` inside the object.  ``None`` derives an
-            autocorrelation support (spec 7).
-        mask: boolean, ``True`` marks *unusable* pixels (spec 4.3).
+            autocorrelation support.
+        mask: boolean, ``True`` marks *unusable* pixels.
         recipe: ``None`` uses :func:`default_recipe`.
         starts: number of random starts; >1 returns an :class:`Ensemble`.
         batch: starts run simultaneously under ``vmap``.  ``None`` runs them all
             at once, which is fastest but can exhaust GPU memory on large 3D
-            data -- lower it if you hit OOM (spec 13.2).
-        seed: PRNG seed; ``None`` means 0, not "random" (spec 16).
+            data -- lower it if you hit OOM.
+        seed: PRNG seed; ``None`` means 0, not "random".
     """
     problem = CDI(
         intensity,
