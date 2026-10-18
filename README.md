@@ -1,6 +1,6 @@
 # QoraPhase
 
-[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/NaNIsaac/QoraPhase/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/ci.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/NaNIsaac/QoraPhase/blob/main/LICENSE)
 
 **Phase retrieval for coherent diffraction imaging in JAX: pass a diffraction intensity array, get the complex object back.**
 
