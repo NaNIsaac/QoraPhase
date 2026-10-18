@@ -94,6 +94,29 @@ best = ensemble.best
 `vmap` holds every start in memory at once. `batch` chunks that: lower it if a
 large 3D volume runs out of GPU memory.
 
+Measured on the README object above (64×64, default recipe, no support), CPU
+only. "Converged" counts runs whose final Fourier error is below 1e-3; on this
+object the final errors fall either below 1e-5 or above 6e-3.
+
+```
+CPU: Intel64 Family 6 Model 158 Stepping 10, GenuineIntel | JAX 0.11.1 (cpu) | Python 3.14.7
+```
+
+| starts | first call (incl. compile) | vmap, warm | loop of starts=1, warm | converged (vmap) | converged (loop) |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 2.34 s | 0.05 s | 0.05 s | 1/1 | 1/1 |
+| 8 | 2.19 s | 0.36 s | 0.50 s | 3/8 | 2/8 |
+| 32 | 3.71 s | 1.82 s | 2.18 s | 12/32 | 9/32 |
+
+Roughly a third of the starts converge on this object (21 of 64 across the two
+32-start columns), so one start fails more often than not, while 8 starts
+contained at least one success in both columns. On CPU, `vmap` beat a Python
+loop of single starts at 8 and 32 starts, by a margin (17–28% here) that moves
+between runs. Each new `starts` value costs a first call of 2–4 s, mostly
+compilation.
+
+Regenerate with `python examples/bench_multistart.py`.
+
 ## Swapping the forward model
 
 Algorithms never name an FFT, so the physics is replaceable without touching
