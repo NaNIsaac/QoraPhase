@@ -30,14 +30,8 @@ Repository = "https://github.com/NaNIsaac/QoraPhase"
 Issues = "https://github.com/NaNIsaac/QoraPhase/issues"
 
 [build-system]
-requires = ["hatchling>=1.27"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/qoraphase"]
-
-[tool.hatch.build.targets.sdist]
-include = ["src/qoraphase", "tests", "examples", "README.md", "LICENSE", "CITATION.cff"]
+requires = ["uv_build>=0.12.7,<0.13"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["pytest>=8"]
