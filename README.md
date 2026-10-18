@@ -4,14 +4,19 @@
 
 **Phase retrieval for coherent diffraction imaging in JAX: pass a diffraction intensity array, get the complex object back.**
 
+In coherent diffraction imaging (CDI) the detector records only the intensity of
+the far-field diffraction pattern; the phase is lost. QoraPhase recovers the
+complex object (amplitude and phase) from a measured 2D or 3D pattern with the
+standard iterative algorithms (ER, HIO, RAAR, shrinkwrap), on CPU or GPU. It is
+for people who already have a centred diffraction pattern as an array and want
+a reconstruction they can check.
+
 ![Simulated object, its diffraction intensity, and the reconstruction](https://raw.githubusercontent.com/NaNIsaac/QoraPhase/main/docs/reconstruction.png)
 
-A 64×64 simulated object (24-pixel triangle with an amplitude dip and a phase
-bump), its noiseless intensity, and the best of 8 random starts from
-`qp.reconstruct(intensity, starts=8)`: default recipe, 720 iterations, CPU, and
-no support given — it is derived from the autocorrelation and shrinkwrapped.
-Aligned to the true object with `qp.align_to` for display; relative error
-7.9e-7. Regenerate with `python examples/readme_figure.py`.
+A 64×64 simulated object, its noiseless intensity, and the best of 8 random
+starts from `qp.reconstruct(intensity, starts=8)` with no support given (it is
+derived from the autocorrelation and shrinkwrapped). Relative error against the
+true object: 7.9e-7. Script: `examples/readme_figure.py`.
 
 ## Quick start
 
@@ -22,21 +27,19 @@ pip install qoraphase
 ```
 
 ```python
+import numpy as np
 import qoraphase as qp
 
-result = qp.reconstruct(intensity, support=support)
-result.plot()
+intensity = np.load("pattern.npy")   # centred 2D or 3D diffraction intensity
+result = qp.reconstruct(intensity)   # pass support=... if you have one
+result.plot()                        # result.amplitude, result.phase
 ```
 
-**Array in → reconstruction out.** QoraPhase does not read files. You bring a
-`numpy` or `jax` array; it gives you back an object. Iterative algorithms (ER,
-HIO, RAAR), shrinkwrap, detwinning and multi-start are composable pieces of a
-recipe, and multi-start runs are vectorised with `vmap`.
+QoraPhase does not read files: you bring a `numpy` or `jax` array. Iterative
+algorithms (ER, HIO, RAAR), shrinkwrap, detwinning and multi-start are
+composable pieces of a recipe, and multi-start runs are vectorised with `vmap`.
 
 ## Array conventions (read this first)
-
-These three are the source of nearly every phase-retrieval bug, so they are part
-of the API contract, not an implementation detail.
 
 | | |
 |---|---|
@@ -47,7 +50,7 @@ of the API contract, not an implementation detail.
 
 ## Composing a reconstruction
 
-Code order is execution order. There is no operator-overloading DSL.
+Code order is execution order.
 
 ```python
 problem = qp.CDI(intensity=intensity, support=support, mask=mask)
@@ -65,26 +68,23 @@ The first positional argument of an algorithm is always its iteration count.
 `qp.detwin(...)` runs its body against a support cut in half at the object's
 centre of mass, then restores the full support. That cut is not centrosymmetric,
 so it fits only one of the two conjugate solutions and biases the run into a
-branch. The default recipe places it a quarter of the way through the RAAR
-cycles, where PyNX puts it. It is measurably useful when the support is
-symmetric and the run would otherwise stall, and harmless when it is not — but
-a support with the right shape is worth far more than any detwinning.
+branch. The default recipe runs one detwin pass before shrinkwrap starts. It
+helps when the support is symmetric and the run would otherwise stall; a support
+with the right shape helps more.
 
 `qp.Shrinkwrap(threshold, sigma, method)` takes `method="max"` (classic, relative
 to the peak amplitude) or `method="rms"` (relative to the rms inside the current
 support, less easily thrown off by a hot pixel). The thresholds are on different
 scales: the classic `"max"` value is 0.2, PyNX uses 0.28 for `"rms"`.
 
-The defaults are `0.3, 1.0` rather than the classic `0.2, 2.0`. Starting from an
-autocorrelation support — the case that actually needs shrinkwrap — 0.2 / 2.0
-never converged in testing and 0.3 / 1.0 did, on every object tried. That is a
-measurement on synthetic data, not a law. **These two numbers are the first thing
-to re-tune on a real dataset.**
+The defaults are `0.3, 1.0` rather than the classic `0.2, 2.0`, because only
+those converged from an autocorrelation support on the synthetic test objects.
+**These two numbers are the first thing to re-tune on a real dataset.**
 
 ## Multi-start
 
-Multi-start is a core feature, not an add-on — for a support with awkward
-symmetry it is the difference between converging and not.
+For a support with awkward symmetry, several random starts are often the
+difference between converging and not.
 
 ```python
 ensemble = problem.reconstruct(recipe, starts=32, batch=4)
@@ -104,8 +104,8 @@ qp.CDI(intensity, support=support, model=MyPropagator())
 ```
 
 A model needs `forward` / `adjoint` and should be unitary. A *wrong* model fails
-silently — it can fit the data perfectly and return the wrong object — so this
-is worth getting right. See `tests/test_forward_model.py`.
+silently: it can fit the data perfectly and return the wrong object. See
+`tests/test_forward_model.py`.
 
 ## Before you trust a reconstruction
 
@@ -118,8 +118,8 @@ print(qp.diagnose(intensity, mask=mask, support=support))
 It reports the centring offset two ways (brightest pixel, and Friedel symmetry,
 which resolves half a pixel and works on patterns with no dominant peak), how
 much of the array the autocorrelation fills, the negative and masked fractions,
-and warns about each. An off-centre pattern is the failure that costs the most
-and shows the least.
+and warns about each. An off-centre pattern is the most costly and least visible
+failure.
 
 `examples/diagnose.py` does the same from the command line, then reconstructs
 and reports whether independent starts agree:
@@ -129,8 +129,7 @@ python examples/diagnose.py scan.npz --key intensity --support sup.npy --starts 
 ```
 
 A low Fourier error says a run fits the data. Agreement between starts, after
-alignment, is what says the answer is determined — they are different claims and
-only the second one is worth much.
+alignment, is what says the answer is determined.
 
 ## Combining runs
 
@@ -143,28 +142,18 @@ aligned = ensemble.align()      # every run brought onto the best one
 mean = ensemble.average()       # coherent mean of the aligned runs
 ```
 
-**Never average runs without aligning them.** Each carries its own global phase,
-so a raw mean interferes destructively — in practice it throws away about two
-thirds of the amplitude. The direction survives, so a similarity score will not
-warn you; only the amplitude shows it.
+**Never average runs without aligning them** (`average()` aligns for you). Each
+run carries its own global phase, so a raw mean interferes destructively and
+loses amplitude.
 
-`align()` picks a *convention*, not the truth. It adopts whichever conjugate
-branch the best run happens to be in — enough to combine runs, and no claim
-about which branch is real. Nothing in the data distinguishes them: `conj(obj(-r))`
-reproduces the measured intensity exactly. What breaks the tie is the support
-you supply. Hand the solver a reflected support and every start converges just
-as cleanly on the mirrored object, with a flawless error metric and no warning.
-The handedness of your support is an assumption, not a result.
+`align()` adopts whichever conjugate branch the best run is in; that is a
+convention, not a statement about which branch is real. `conj(obj(-r))`
+reproduces the measured intensity exactly, so only the support you supply breaks
+the tie: a reflected support converges just as cleanly on the mirrored object.
+If the twin branch matters, break the symmetry during the run with `qp.detwin`.
 
-Alignment works to whole pixels.
-
-`result.phase` still carries whatever linear phase the measurement geometry put
-there, and QoraPhase does not remove it. Doing that properly needs the
-diffraction geometry, which arrives with BCDI in v0.3; short of that, any
-"correction" is a guess.
-
-If the twin branch matters to you, break the symmetry during the run rather than
-after it — see `qp.detwin` above.
+Alignment works to whole pixels. `result.phase` keeps any linear phase ramp from
+the measurement geometry; QoraPhase does not remove it.
 
 ## What this does not do
 
