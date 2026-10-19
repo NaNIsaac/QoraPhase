@@ -24,8 +24,8 @@ def modulus_project(obj: jnp.ndarray, problem, coherence=None):
     wave = problem.model.forward(obj)
     magnitude = blurred_magnitude(wave, coherence)
     err = fourier_error(magnitude, problem.amplitude, problem.mask)
-    ratio = jnp.where(problem.mask, 1.0, problem.amplitude / (magnitude + EPS))
-    return problem.model.adjoint(ratio * wave), err
+    target = jnp.where(problem.mask, magnitude, problem.amplitude)
+    return problem.model.adjoint(target * wave / (magnitude + EPS)), err
 
 
 @dataclass(frozen=True)
