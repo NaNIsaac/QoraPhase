@@ -5,10 +5,11 @@ conjugate flip.  Nothing during iteration can fix that -- all three are exact
 symmetries of the constraints -- so it is dealt with here, once, on concrete
 arrays.  These run on the host and are not part of any traced loop.
 
-Phase-ramp removal is deliberately absent.  A linear phase across the object
-comes from the Bragg peak sitting off the array centre, so removing it properly
-needs the diffraction geometry -- which arrives with BCDI in v0.3.  Anything
-short of that is a guess dressed up as a correction.
+A linear phase across the object means its Fourier transform is centred off the
+array centre.  :func:`remove_ramp` measures that offset from the data and cancels
+it; it does not know the diffraction geometry, so it removes whatever ramp is
+there, including one that carries physical information (strain, a displaced
+Bragg peak).
 """
 
 import jax.numpy as jnp
@@ -126,3 +127,63 @@ def align_to(obj: jnp.ndarray, reference: jnp.ndarray, upsample: int = 1) -> jnp
         _register_and_apply(twin(obj), reference, upsample),
     ]
     return max(candidates, key=lambda c: float(c[1]))[0]
+
+
+def _spectral_peak(obj, pad):
+    """Centre of mass of ``|F|^2`` of the zero-padded *obj*, per axis, in padded pixels."""
+    shape = obj.shape
+    padded_shape = tuple(pad * n for n in shape)
+    before = [m // 2 - n // 2 for m, n in zip(padded_shape, shape)]
+    padded = jnp.pad(obj, [(b, m - n - b) for b, m, n in zip(before, padded_shape, shape)])
+    intensity = jnp.abs(jnp.fft.fftshift(jnp.fft.fftn(jnp.fft.ifftshift(padded)))) ** 2
+    # An even-sized spectrum has a lone -m/2 sample with no +m/2 partner; left in,
+    # it biases the centre of mass of even a ramp-free real object.
+    for axis, m in enumerate(padded_shape):
+        keep = jnp.abs(jnp.arange(m) - m // 2) < m / 2
+        intensity = intensity * keep.reshape([-1 if a == axis else 1 for a in range(obj.ndim)])
+    total = intensity.sum()
+    return tuple(
+        (intensity.sum(axis=tuple(a for a in range(obj.ndim) if a != axis))
+         * (jnp.arange(m) - m // 2)).sum() / total
+        for axis, m in enumerate(padded_shape)
+    )
+
+
+def remove_ramp(obj, support=None, *, pad: int = 2, iterations: int = 3, zero_phase: bool = False):
+    """Remove the linear phase ramp by centring the object's Fourier peak.
+
+    The ramp is read off as the centre of mass of ``|F|^2`` of the zero-padded
+    object (``pad`` times larger per axis, which sets how finely the offset is
+    resolved), and cancelled with a phase ramp that is zero at the array centre.
+    The offset is a real number, so this is a sub-pixel shift of the spectrum.
+    The centre of mass is unbiased when the ramp-free spectrum is centrosymmetric
+    (a real object); for a general complex object it is an estimate.
+
+    A spectrum displaced from the centre is cut off asymmetrically by the array
+    edge, which pulls the centre of mass towards zero.  Each pass removes most of
+    the ramp and therefore most of that bias, so ``iterations`` passes are made.
+
+    *support*, if given, restricts the measurement to the object (noise outside
+    it would otherwise pull the peak); the returned array is not masked.  With
+    ``zero_phase`` the global phase is then set so that the mean phase inside the
+    support, weighted by amplitude, is zero.  Without a support the voxels above
+    a tenth of the peak amplitude stand in for it.
+
+    Traceable: usable under ``jit`` with ``pad``, ``iterations`` and
+    ``zero_phase`` static.
+    """
+    inside = jnp.abs(obj) > 0.1 * jnp.abs(obj).max() if support is None else support
+    positions = [
+        (jnp.arange(n) - n // 2).reshape([-1 if a == axis else 1 for a in range(obj.ndim)])
+        for axis, n in enumerate(obj.shape)
+    ]
+
+    out = obj
+    for _ in range(iterations):
+        peak = _spectral_peak(jnp.where(inside, out, 0), pad)
+        phase = sum(q * x / (pad * n) for q, x, n in zip(peak, positions, obj.shape))
+        out = out * jnp.exp(-2j * jnp.pi * phase)
+
+    if zero_phase:
+        out = out * jnp.exp(-1j * jnp.angle(jnp.where(inside, out, 0).sum()))
+    return out

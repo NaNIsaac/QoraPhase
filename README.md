@@ -176,7 +176,7 @@ the tie: a reflected support converges just as cleanly on the mirrored object.
 If the twin branch matters, break the symmetry during the run with `qp.detwin`.
 
 Alignment works to whole pixels by default. `result.phase` keeps any linear phase
-ramp from the measurement geometry; QoraPhase does not remove it.
+ramp from the measurement geometry until you call `qp.remove_ramp` (below).
 
 ### Sub-pixel alignment
 
@@ -213,9 +213,45 @@ for upsample in (1, 100):
 100 1.5936516413343817e-07
 ```
 
+### Phase-ramp removal
+
+A linear phase across the object means its Fourier transform sits off the array
+centre. `qp.remove_ramp(obj)` finds that offset as the centre of mass of `|F|^2`
+of the zero-padded object, to a fraction of a pixel, and cancels it. Pass the
+support to keep noise outside the object out of the measurement, and
+`zero_phase=True` to also set the mean phase inside the support to zero.
+
+It removes whatever linear phase is present. A ramp that carries physical
+information (a displaced Bragg peak, uniform strain) goes with it, so keep the
+original if you need it. The centre of mass is exact for a real-valued object; for
+a complex one it is an estimate. It traces under `jax.jit` (`pad`, `iterations`
+and `zero_phase` static).
+
+```python
+import numpy as np
+import qoraphase as qp
+
+rng = np.random.default_rng(0)
+obj = np.zeros((32, 32))
+obj[11:21, 11:21] = rng.uniform(0.5, 1, (10, 10))
+support = obj > 0
+
+x = np.arange(32) - 16
+ramped = obj * np.exp(2j * np.pi * (0.071 * x[:, None] - 0.043 * x[None, :]))
+
+cleaned = np.asarray(qp.remove_ramp(ramped, support, zero_phase=True))
+print(np.abs(np.angle(ramped[support])).max())
+print(np.abs(np.angle(cleaned[support])).max())
+```
+
+```
+3.135309468282613
+0.000930922
+```
+
 ## What this does not do
 
-- No phase-ramp removal, no clustering, no PRTF.
+- No clustering, no PRTF.
 - No positivity/reality constraint — the object is complex here.
 - No file I/O, no BCDI geometry, no NUFFT, no strain, no autodiff optimisers.
 

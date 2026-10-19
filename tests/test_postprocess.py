@@ -117,6 +117,76 @@ def test_subpixel_alignment_still_resolves_phase_and_twin():
 
 
 # --------------------------------------------------------------------------
+# remove_ramp
+# --------------------------------------------------------------------------
+
+
+def with_ramp(obj, slopes):
+    """Multiply by ``exp(2 pi i slopes . r)``, zero phase at the array centre."""
+    phase = 0
+    for axis, (n, slope) in enumerate(zip(obj.shape, slopes)):
+        shape = [1] * obj.ndim
+        shape[axis] = -1
+        phase = phase + slope * (np.arange(n) - n // 2).reshape(shape)
+    return obj * np.exp(2j * np.pi * phase)
+
+
+def real_object(shape, m):
+    """Non-negative, asymmetric, so its spectrum is centrosymmetric but not trivial."""
+    return np.abs(make_object(shape, m=m, seed=4)) * (make_object(shape, m=m, seed=4) != 0)
+
+
+@pytest.mark.parametrize(
+    "shape, m, slopes",
+    [
+        ((32, 32), 10, (0.071, -0.043)),
+        ((32, 32), 10, (-0.0123, 0.0)),
+        ((24, 24, 24), 6, (0.05, -0.03, 0.021)),
+    ],
+)
+def test_remove_ramp_cancels_a_synthetic_ramp(shape, m, slopes):
+    obj = real_object(shape, m)
+    ramped = with_ramp(obj, slopes)
+
+    cleaned = np.asarray(qp.remove_ramp(jnp.asarray(ramped)))
+
+    inside = obj > 0
+    residual = np.angle(cleaned[inside] * np.conj(obj[inside]))
+    assert np.abs(residual).max() < 0.05
+
+
+def test_remove_ramp_leaves_a_flat_object_alone():
+    obj = real_object((32, 32), 10)
+    assert np.allclose(qp.remove_ramp(jnp.asarray(obj)), obj, atol=1e-3)
+
+
+def test_remove_ramp_keeps_the_amplitude():
+    obj = real_object((32, 32), 10)
+    cleaned = qp.remove_ramp(jnp.asarray(with_ramp(obj, (0.06, 0.02))))
+    assert np.allclose(np.abs(cleaned), obj, atol=1e-5)
+
+
+def test_remove_ramp_zero_phase_sets_the_mean_phase_in_the_support():
+    obj = real_object((32, 32), 10)
+    support = obj > 0
+    ramped = with_ramp(obj, (0.05, -0.02)) * np.exp(1.3j)
+
+    cleaned = np.asarray(qp.remove_ramp(jnp.asarray(ramped), support, zero_phase=True))
+
+    assert abs(np.angle(cleaned[support].sum())) < 1e-4
+    assert np.allclose(cleaned[support], obj[support], atol=0.05)
+
+
+def test_remove_ramp_runs_under_jit():
+    import jax
+
+    obj = jnp.asarray(with_ramp(real_object((32, 32), 10), (0.05, -0.02)))
+    plain = qp.remove_ramp(obj)
+    compiled = jax.jit(qp.remove_ramp, static_argnames=("pad", "iterations", "zero_phase"))(obj)
+    assert np.allclose(plain, compiled, atol=1e-5)
+
+
+# --------------------------------------------------------------------------
 # Ensemble.align / Ensemble.average
 # --------------------------------------------------------------------------
 
