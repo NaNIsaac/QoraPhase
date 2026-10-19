@@ -22,7 +22,7 @@ from .models.fft import FFT
 from .operators.modulus import ModulusProjection
 from .operators.shrinkwrap import Shrinkwrap
 from .operators.support import SupportProjection
-from .postprocess import align_to
+from .postprocess import align_to, register
 from .recipes.recipe import Recipe, detwin, repeat
 
 __all__ = [
@@ -44,5 +44,6 @@ __all__ = [
     "detwin",
     "diagnose",
     "reconstruct",
+    "register",
     "repeat",
 ]

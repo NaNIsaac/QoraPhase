@@ -56,6 +56,67 @@ def test_alignment_reconciles_two_independent_runs():
 
 
 # --------------------------------------------------------------------------
+# sub-pixel registration
+# --------------------------------------------------------------------------
+
+
+def fourier_shift(x, shift):
+    """Reference sub-pixel displacement, in plain numpy."""
+    out = np.fft.fftn(x)
+    for axis, delta in enumerate(shift):
+        shape = [1] * x.ndim
+        shape[axis] = -1
+        out = out * np.exp(-2j * np.pi * delta * np.fft.fftfreq(x.shape[axis]).reshape(shape))
+    return np.fft.ifftn(out)
+
+
+@pytest.mark.parametrize(
+    "shape, m, shift",
+    [
+        ((32, 32), 10, (1.37, -2.63)),
+        ((32, 32), 10, (-0.5, 0.21)),
+        ((24, 24, 24), 6, (1.3, -0.7, 2.45)),
+    ],
+)
+def test_register_recovers_a_fractional_shift(shape, m, shift):
+    obj = make_object(shape, m=m, seed=2)
+    moved = fourier_shift(obj, shift) * np.exp(0.7j)
+
+    found, _ = qp.register(jnp.asarray(moved), jnp.asarray(obj), upsample=100)
+
+    assert np.abs(np.array(found) - np.array(shift)).max() < 0.05
+
+
+def test_whole_pixel_registration_cannot_see_a_fraction():
+    obj = make_object(seed=2)
+    found, _ = qp.register(jnp.asarray(fourier_shift(obj, (0.4, -0.4))), jnp.asarray(obj))
+    assert found == (0.0, 0.0)
+
+
+@pytest.mark.parametrize("shape, m", [((32, 32), 10), ((24, 24, 24), 6)])
+def test_subpixel_alignment_beats_whole_pixel(shape, m):
+    obj = jnp.asarray(make_object(shape, m=m, seed=2))
+    shift = (0.4,) * (len(shape) - 1) + (-0.35,)
+    moved = jnp.asarray(fourier_shift(np.asarray(obj), shift))
+
+    coarse = np.linalg.norm(qp.align_to(moved, obj) - obj)
+    fine = np.linalg.norm(qp.align_to(moved, obj, upsample=100) - obj)
+
+    assert fine < 0.05 * np.linalg.norm(obj)
+    assert fine < 0.3 * coarse
+
+
+def test_subpixel_alignment_still_resolves_phase_and_twin():
+    obj = jnp.asarray(make_object(seed=2))
+    twin = jnp.conj(jnp.asarray(flip_about_origin(np.asarray(obj))))
+    mangled = jnp.asarray(fourier_shift(np.asarray(twin), (2.3, -1.6))) * jnp.exp(-2.3j)
+
+    aligned = qp.align_to(mangled, obj, upsample=100)
+
+    assert np.linalg.norm(aligned - obj) < 0.05 * np.linalg.norm(obj)
+
+
+# --------------------------------------------------------------------------
 # Ensemble.align / Ensemble.average
 # --------------------------------------------------------------------------
 

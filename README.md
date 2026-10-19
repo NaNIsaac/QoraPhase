@@ -175,12 +175,47 @@ reproduces the measured intensity exactly, so only the support you supply breaks
 the tie: a reflected support converges just as cleanly on the mirrored object.
 If the twin branch matters, break the symmetry during the run with `qp.detwin`.
 
-Alignment works to whole pixels. `result.phase` keeps any linear phase ramp from
-the measurement geometry; QoraPhase does not remove it.
+Alignment works to whole pixels by default. `result.phase` keeps any linear phase
+ramp from the measurement geometry; QoraPhase does not remove it.
+
+### Sub-pixel alignment
+
+`upsample=N` refines the whole-pixel correlation peak to about `1/N` pixel with
+the matrix-multiply DFT of Guizar-Sicairos et al. (Opt. Lett. 33, 156, 2008) and
+applies the fractional remainder as a Fourier shift. It is available on
+`align_to`, `Ensemble.align` and `Ensemble.average`; `qp.register` returns the
+shift itself. The Fourier shift treats the array as periodic, so the object
+should not touch the array edge.
+
+```python
+import numpy as np
+import qoraphase as qp
+
+rng = np.random.default_rng(0)
+obj = np.zeros((32, 32), complex)
+obj[11:21, 11:21] = rng.uniform(0.5, 1, (10, 10)) * np.exp(1j * rng.uniform(-0.5, 0.5, (10, 10)))
+
+# displace by (1.37, -2.63) pixels through the Fourier shift theorem
+freq = [np.fft.fftfreq(n) for n in obj.shape]
+ramp = np.exp(-2j * np.pi * (1.37 * freq[0][:, None] - 2.63 * freq[1][None, :]))
+moved = np.fft.ifftn(np.fft.fftn(obj) * ramp)
+
+shift, _ = qp.register(moved, obj, upsample=100)
+print(shift)
+for upsample in (1, 100):
+    aligned = qp.align_to(moved, obj, upsample=upsample)
+    print(upsample, np.linalg.norm(aligned - obj) / np.linalg.norm(obj))
+```
+
+```
+(1.3699999999999999, -2.63)
+1 0.41172676077039544
+100 1.5936516413343817e-07
+```
 
 ## What this does not do
 
-- No phase-ramp removal, no sub-pixel alignment, no clustering, no PRTF.
+- No phase-ramp removal, no clustering, no PRTF.
 - No positivity/reality constraint — the object is complex here.
 - No file I/O, no BCDI geometry, no NUFFT, no strain, no autodiff optimisers.
 

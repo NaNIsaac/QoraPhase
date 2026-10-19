@@ -44,28 +44,31 @@ class Ensemble:
     def best(self) -> Reconstruction:
         return self.runs[self.ranking[0]]
 
-    def align(self) -> "Ensemble":
+    def align(self, upsample: int = 1) -> "Ensemble":
         """Bring every run onto the best one, in phase, position and branch.
 
         The best run supplies the convention, nothing more: if it happens to sit
         in the conjugate-flipped branch, the whole aligned ensemble does too.
         That is fine for combining runs, which is what this is for, and it is not
         a statement about which branch is real.
+
+        ``upsample`` is passed to :func:`~qoraphase.postprocess.align_to`; the
+        default aligns to whole pixels.
         """
         reference = self.best.object
         aligned = tuple(
-            replace(run, object=align_to(run.object, reference)) for run in self.runs
+            replace(run, object=align_to(run.object, reference, upsample)) for run in self.runs
         )
         return Ensemble(aligned, self.problem)
 
-    def average(self) -> Reconstruction:
+    def average(self, upsample: int = 1) -> Reconstruction:
         """Coherent mean of the aligned runs.
 
         Aligning first is not optional: averaging raw runs cancels them against
         each other, because they differ by exactly the symmetries the solver
         cannot see.
         """
-        aligned = self.align()
+        aligned = self.align(upsample)
         mean = sum(run.object for run in aligned) / len(aligned)
         return Reconstruction(mean, self.best.support, self._score(mean))
 
