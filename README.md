@@ -458,7 +458,10 @@ show it improves reconstructions in general.
 
 - No clustering of runs.
 - No positivity/reality constraint — the object is complex here.
-- No file I/O, no BCDI geometry, no NUFFT, no strain, no autodiff optimisers.
+- No file I/O, no NUFFT, no autodiff optimisers.
+- No BCDI geometry and no strain: [QoraGeom](https://github.com/NaNIsaac/QoraGeom)
+  reads the SPEC scan, builds the detector-to-lab basis, resamples a
+  reconstruction to the lab frame and computes strain from its phase.
 
 ## Development
 
