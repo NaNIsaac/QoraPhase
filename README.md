@@ -249,9 +249,50 @@ print(np.abs(np.angle(cleaned[support])).max())
 0.000930922
 ```
 
+### PRTF
+
+The phase retrieval transfer function measures where independent reconstructions
+stop agreeing. `qp.prtf(ensemble, intensity, mask)` aligns the runs (to `1/100`
+pixel by default, `upsample=` changes that), averages their transforms and
+divides the radially summed amplitude of the mean by the measured one. It returns
+a `PRTF` with `frequency` (shell centres, cycles per object pixel), `value`,
+`crossing` (where `value` first falls below 1/e, interpolated, nan if it never
+does) and `resolution` (`1 / crossing`, a full period in object pixels). A
+sequence of already-aligned objects works too with `align=False`, and
+`qp.prtf_curve` is the traceable core. Two or more runs are needed; one run has a
+PRTF of 1 by construction.
+
+```python
+import numpy as np
+import qoraphase as qp
+
+rng = np.random.default_rng(1)
+obj = np.zeros((48, 48), complex)
+block = rng.uniform(0.5, 1, (14, 14)) * np.exp(1j * rng.uniform(-0.5, 0.5, (14, 14)))
+obj[17:31, 17:31] = block * (np.indices((14, 14)).sum(0) < 14)
+support = np.abs(obj) > 0
+
+clean = np.abs(np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(obj), norm="ortho"))) ** 2
+intensity = rng.poisson(clean * (100 / clean.max())) * (clean.max() / 100)
+
+ensemble = qp.reconstruct(intensity, support=support, starts=12, seed=0)
+result = qp.prtf(ensemble, intensity)
+print(np.round(np.asarray(result.value)[::4], 3))
+print(result.crossing, result.resolution)
+```
+
+```
+[0.979 0.852 0.676 0.499 0.468 0.396 0.278]
+0.437100887298584 2.2878013498904184
+```
+
+On noiseless data a converged ensemble has a PRTF of 1 at every frequency and no
+crossing. Here the intensity has Poisson noise (peak of 100 counts), and the
+values printed are every fourth shell, from zero frequency to Nyquist (0.5).
+
 ## What this does not do
 
-- No clustering, no PRTF.
+- No clustering of runs.
 - No positivity/reality constraint — the object is complex here.
 - No file I/O, no BCDI geometry, no NUFFT, no strain, no autodiff optimisers.
 
