@@ -130,27 +130,49 @@ def test_a_recipe_per_generation(easy):
 # --------------------------------------------------------------------------
 
 
-def test_breeding_beats_the_same_budget_without_it_on_a_symmetric_support():
-    """A box support admits the object and its twin; random starts stagnate in a
-    mixture of both.  Aligning every run to the best before breeding puts the
-    population in one branch, which the plain multi-start has no way to do.
+def converged(ensemble):
+    return sum(run.error < 1e-3 for run in ensemble)
+
+
+def three_ways(obj_kwargs, seeds):
+    """Converged counts: independent starts, clone-the-best, sqrt_ab breeding.
+
+    Each gets 8 starts and 450 iterations per start: three generations of 150, or
+    all 450 at once for the independent starts.
     """
-    obj, support, intensity = make_data(centrosymmetric=True)
+    obj, support, intensity = make_data(centrosymmetric=True, **obj_kwargs)
     problem = qp.CDI(intensity, support=support)
     per_generation = qp.Recipe(qp.RAAR(100, beta=0.9), qp.ER(50))
     same_budget = qp.Recipe(qp.RAAR(300, beta=0.9), qp.ER(150))
 
-    def converged(ensemble):
-        return sum(run.error < 1e-3 for run in ensemble)
+    counts = {"plain": 0, "clone": 0, "sqrt_ab": 0}
+    for seed in seeds:
+        counts["plain"] += converged(problem.reconstruct(same_budget, starts=8, seed=seed))
+        for mode in ("clone", "sqrt_ab"):
+            evolved = qp.evolve(problem, per_generation, starts=8, generations=3, breed=mode, seed=seed)
+            counts[mode] += converged(evolved)
+            if mode == "sqrt_ab":
+                for run in evolved:
+                    if run.error < 1e-3:
+                        assert complex_similarity(run.object, obj) > 0.99
+    return counts
 
-    bred = plain = 0
-    for seed in range(6):
-        evolved = qp.evolve(problem, per_generation, starts=8, generations=3, seed=seed)
-        bred += converged(evolved)
-        plain += converged(problem.reconstruct(same_budget, starts=8, seed=seed))
-        for run in evolved:
-            if run.error < 1e-3:
-                assert complex_similarity(run.object, obj) > 0.99
 
-    assert bred >= plain
-    assert bred > 0
+def test_breeding_against_clone_and_independent_starts_on_one_object():
+    """Measured, not argued: on this object (10x10 box, seeds 0-5) the clone
+    control converges nothing and breeding converges runs, so the gain here is
+    from breeding itself and not only from aligning to the best run.
+    """
+    counts = three_ways({}, range(6))
+    assert counts["sqrt_ab"] > counts["clone"]
+    assert counts["clone"] >= counts["plain"]
+
+
+def test_breeding_against_clone_and_independent_starts_on_another_object():
+    """On this one (8x8 box, object seed 5, seeds 0-3) the clone control already
+    converges far more runs than independent starts, and breeding at least
+    matches it.  Aligning to and continuing the best run accounts for most of
+    the gain here.
+    """
+    counts = three_ways({"m": 8, "seed": 5}, range(4))
+    assert counts["sqrt_ab"] >= counts["clone"] > counts["plain"]

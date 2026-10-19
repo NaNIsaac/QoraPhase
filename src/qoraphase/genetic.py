@@ -44,7 +44,13 @@ def _amplitude_b_phase_a(a, b):
     return jnp.abs(b) * jnp.exp(1j * jnp.angle(a))
 
 
-# Names are cohere's.  ``a`` is the best run, ``b`` the one being bred.
+def _clone(a, b):
+    return a
+
+
+# Names are cohere's, except "clone".  ``a`` is the best run, ``b`` the one being bred.
+# "clone" ignores ``b``: every child is the aligned best run.  It is a control for
+# separating what breeding adds from what aligning to the best run adds.
 BREEDERS: dict[str, Callable] = {
     "sqrt_ab": _geometric,
     "sqrt_ab_pa": _geometric_phase_a,
@@ -52,6 +58,7 @@ BREEDERS: dict[str, Callable] = {
     "avg_ab_pa": _arithmetic_phase_a,
     "max_ab": _largest,
     "b_pa": _amplitude_b_phase_a,
+    "clone": _clone,
 }
 
 
