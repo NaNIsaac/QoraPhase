@@ -27,8 +27,7 @@ class Stage:
 class Iterative(Stage):
     """A stage that repeats ``step`` ``n`` times under ``lax.scan``.
 
-    ``n`` is the scan length and therefore static: changing it recompiles
-   .
+    ``n`` is the scan length and therefore static: changing it recompiles.
     """
 
     n: int
@@ -89,8 +88,7 @@ class Detwin(Stage):
     that symmetry for a few cycles and biases the solution into one branch, after
     which the full support is restored.
 
-    Which branch it lands in follows from the cut, not from the data
-   .
+    Which branch it lands in follows from the cut, not from the data.
     """
 
     body: Recipe

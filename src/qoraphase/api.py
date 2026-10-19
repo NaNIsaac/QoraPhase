@@ -39,7 +39,7 @@ def default_recipe() -> Recipe:
 
 def _run_single(problem, recipe, key):
     state, metrics = recipe.run(initial_state(key, problem), problem)
-    return state.obj, state.support, metrics
+    return state.obj, state.support, metrics, state.coherence
 
 
 @partial(jax.jit, static_argnames=("batch",))
@@ -58,12 +58,17 @@ def _run_many(problem, recipe, keys, batch):
 def run(problem: CDI, recipe=None, *, starts=1, batch=None, seed=None):
     """Execute *recipe* on *problem*.  See :func:`reconstruct`."""
     recipe = default_recipe() if recipe is None else recipe
+    if not isinstance(recipe, Recipe):
+        recipe = Recipe(recipe)  # a single stage such as qp.RAAR(100) is a recipe too
     check_run(recipe, starts, batch)
 
     keys = jax.random.split(jax.random.key(0 if seed is None else seed), starts)
-    objects, supports, metrics = _run_many(problem, recipe, keys, batch)
+    objects, supports, metrics, coherence = _run_many(problem, recipe, keys, batch)
     runs = tuple(
-        Reconstruction(objects[i], supports[i], metrics[i]) for i in range(starts)
+        Reconstruction(
+            objects[i], supports[i], metrics[i], None if coherence is None else coherence[i]
+        )
+        for i in range(starts)
     )
     return runs[0] if starts == 1 else Ensemble(runs, problem)
 

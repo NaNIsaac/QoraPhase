@@ -5,11 +5,12 @@ from dataclasses import dataclass
 import jax.numpy as jnp
 
 from ..metrics.errors import fourier_error
+from .coherence import blurred_magnitude
 
 EPS = 1e-12
 
 
-def modulus_project(obj: jnp.ndarray, problem):
+def modulus_project(obj: jnp.ndarray, problem, coherence=None):
     """Project onto the measured-magnitude set.
 
     Returns ``(projected_obj, fourier_error)``.  The error comes for free from
@@ -17,13 +18,14 @@ def modulus_project(obj: jnp.ndarray, problem):
     operator would double the FFT cost.
 
     Masked pixels keep their *computed* magnitude -- they are unconstrained, not
-    zero.
+    zero.  With a *coherence* kernel the measurement is compared with the
+    blurred model intensity, and the wave is rescaled by the same ratio.
     """
     wave = problem.model.forward(obj)
-    magnitude = jnp.abs(wave)
+    magnitude = blurred_magnitude(wave, coherence)
     err = fourier_error(magnitude, problem.amplitude, problem.mask)
-    target = jnp.where(problem.mask, magnitude, problem.amplitude)
-    return problem.model.adjoint(target * wave / (magnitude + EPS)), err
+    ratio = jnp.where(problem.mask, 1.0, problem.amplitude / (magnitude + EPS))
+    return problem.model.adjoint(ratio * wave), err
 
 
 @dataclass(frozen=True)

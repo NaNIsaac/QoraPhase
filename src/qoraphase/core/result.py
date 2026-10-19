@@ -18,6 +18,8 @@ class Reconstruction:
     object: jnp.ndarray
     support: jnp.ndarray
     metrics: jnp.ndarray
+    # Estimated coherence kernel when the recipe used qp.partial_coherence.
+    coherence: jnp.ndarray | None = None
 
     @property
     def amplitude(self) -> jnp.ndarray:

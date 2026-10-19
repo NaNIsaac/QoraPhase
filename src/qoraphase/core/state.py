@@ -20,6 +20,8 @@ class ReconState(NamedTuple):
     support: jnp.ndarray  # bool
     iteration: jnp.ndarray  # int32 scalar
     key: jax.Array  # PRNG key
+    # Partial-coherence kernel, center-origin; None for a coherent model.
+    coherence: jnp.ndarray | None = None
 
 
 def random_init(key: jax.Array, problem, support: jnp.ndarray) -> jnp.ndarray:

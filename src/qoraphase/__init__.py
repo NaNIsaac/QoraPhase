@@ -19,7 +19,9 @@ from .core.result import Reconstruction
 from .core.state import ReconState
 from .diagnostics import Diagnosis, diagnose
 from .models.fft import FFT
+from .operators.coherence import PartialCoherence, UpdateCoherence, partial_coherence
 from .operators.modulus import ModulusProjection
+from .operators.phase import PhaseLimited, phase_limit
 from .operators.shrinkwrap import Shrinkwrap
 from .operators.support import SupportProjection
 from .postprocess import align_to, register, remove_ramp
@@ -36,17 +38,22 @@ __all__ = [
     "Ensemble",
     "ModulusProjection",
     "PRTF",
+    "PartialCoherence",
+    "PhaseLimited",
     "ReconState",
     "Reconstruction",
     "Recipe",
     "Shrinkwrap",
     "SupportProjection",
+    "UpdateCoherence",
     "align_to",
     "default_recipe",
     "detwin",
     "diagnose",
     "prtf",
     "prtf_curve",
+    "partial_coherence",
+    "phase_limit",
     "reconstruct",
     "register",
     "remove_ramp",

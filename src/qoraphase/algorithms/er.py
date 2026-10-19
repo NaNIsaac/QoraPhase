@@ -14,7 +14,7 @@ class ER(Iterative):
     """``x <- P_S P_M x``.  Monotone in the Fourier error, and slow."""
 
     def step(self, state, problem):
-        projected, err = modulus_project(state.obj, problem)
+        projected, err = modulus_project(state.obj, problem, state.coherence)
         obj = support_project(projected, state.support)
         return state._replace(obj=obj, iteration=state.iteration + 1), err
 
