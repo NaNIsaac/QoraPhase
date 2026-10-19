@@ -351,6 +351,71 @@ On noiseless data a converged ensemble has a PRTF of 1 at every frequency and no
 crossing. Here the intensity has Poisson noise (peak of 100 counts), and the
 values printed are every fourth shell, from zero frequency to Nyquist (0.5).
 
+## Genetic algorithm
+
+`qp.evolve` runs a recipe for several generations. After each one the worst runs
+are dropped (`cull`), the rest are aligned to the best (`Ensemble.align`, so the
+whole population ends up in one twin branch) and bred with it, and the next
+generation restarts from the children instead of from random phases. The names
+of the breeding modes are cohere's: `sqrt_ab`, `avg_ab`, `sqrt_ab_pa`,
+`avg_ab_pa`, `max_ab`, `b_pa` (`qp.BREEDERS`; `qp.breed` applies one to two
+aligned arrays).
+
+```python
+ensemble = qp.evolve(problem, recipe, starts=8, generations=3, breed="sqrt_ab", cull=[2, 2])
+len(ensemble)      # 4: the last generation
+ensemble.history   # the earlier generations, oldest first
+```
+
+`recipe` may be a sequence with one recipe per generation. `cull` is an int or a
+list indexed by generation, so `[2, 2]` takes 8 runs to 6 and then 4. Children
+restart on the problem's support rather than the shrinkwrapped one, and a
+partial-coherence kernel starts afresh in each generation.
+
+The case it is for is a support that admits both the object and its twin, where
+random starts stagnate in a mixture of the two. Below, a square support, 8 starts
+per seed and 150 iterations per generation over 3 generations, against the same
+450 iterations in one go. A run counts as converged below a Fourier error of 1e-3;
+each seed has 8 runs.
+
+```python
+import numpy as np
+import qoraphase as qp
+
+rng = np.random.default_rng(0)
+obj = np.zeros((32, 32), complex)
+obj[11:21, 11:21] = rng.uniform(0.5, 1, (10, 10)) * np.exp(1j * rng.uniform(-0.5, 0.5, (10, 10)))
+support = np.abs(obj) > 0   # a square: it admits the object and its twin
+intensity = np.abs(np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(obj), norm="ortho"))) ** 2
+problem = qp.CDI(intensity, support=support)
+
+per_generation = qp.Recipe(qp.RAAR(100, beta=0.9), qp.ER(50))
+same_budget = qp.Recipe(qp.RAAR(300, beta=0.9), qp.ER(150))
+
+
+def converged(ensemble):
+    return sum(run.error < 1e-3 for run in ensemble)
+
+
+seeds = range(10)
+print("same budget, no breeding:", sum(converged(problem.reconstruct(same_budget, starts=8, seed=s)) for s in seeds))
+for mode in ("sqrt_ab", "avg_ab"):
+    final = [converged(qp.evolve(problem, per_generation, starts=8, generations=3, breed=mode, seed=s)) for s in seeds]
+    print(mode, sum(final), final)
+```
+
+```
+same budget, no breeding: 0
+sqrt_ab 45 [0, 8, 0, 0, 8, 6, 8, 8, 6, 1]
+avg_ab 49 [1, 8, 0, 0, 7, 8, 7, 7, 8, 3]
+```
+
+Without breeding none of the 80 runs converged. With it, 45 and 49 did, but not
+evenly: on some seeds every run converged and on others none did, because the
+best run of the first generation sets the branch the rest are pulled into and a
+poor one cannot be repaired by breeding. Those numbers are for this object and
+these settings only.
+
 ## What this does not do
 
 - No clustering of runs.

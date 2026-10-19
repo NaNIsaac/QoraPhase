@@ -37,20 +37,21 @@ def default_recipe() -> Recipe:
     )
 
 
-def _run_single(problem, recipe, key):
-    state, metrics = recipe.run(initial_state(key, problem), problem)
+def _run_single(problem, recipe, key, init):
+    state, metrics = recipe.run(initial_state(key, problem, init), problem)
     return state.obj, state.support, metrics, state.coherence
 
 
 @partial(jax.jit, static_argnames=("batch",))
-def _run_many(problem, recipe, keys, batch):
-    fan = jax.vmap(_run_single, in_axes=(None, None, 0))
+def _run_many(problem, recipe, keys, batch, init=None):
+    """``init`` is a stack of starting objects, one per key; ``None`` starts at random."""
+    fan = jax.vmap(_run_single, in_axes=(None, None, 0, None if init is None else 0))
     if batch is None:
-        return fan(problem, recipe, keys)
+        return fan(problem, recipe, keys, init)
     starts = keys.shape[0]
     chunked = lax.map(
-        lambda chunk: fan(problem, recipe, chunk),
-        keys.reshape(starts // batch, batch),
+        lambda chunk: fan(problem, recipe, *chunk),
+        jax.tree.map(lambda a: a.reshape(starts // batch, batch, *a.shape[1:]), (keys, init)),
     )
     return jax.tree.map(lambda a: a.reshape(starts, *a.shape[2:]), chunked)
 

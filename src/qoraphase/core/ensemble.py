@@ -18,11 +18,13 @@ class Ensemble:
     combines them.
 
     ``problem`` is carried so that a combined result can be scored against the
-    original measurement; it is absent for hand-built ensembles.
+    original measurement; it is absent for hand-built ensembles.  ``history``
+    holds the earlier generations of a :func:`~qoraphase.evolve` run, oldest first.
     """
 
     runs: tuple
     problem: object = None
+    history: tuple = ()
 
     def __len__(self) -> int:
         return len(self.runs)

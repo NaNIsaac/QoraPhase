@@ -33,9 +33,13 @@ def random_init(key: jax.Array, problem, support: jnp.ndarray) -> jnp.ndarray:
     return support_project(obj, support)
 
 
-def initial_state(key: jax.Array, problem) -> ReconState:
+def initial_state(key: jax.Array, problem, obj: jnp.ndarray | None = None) -> ReconState:
+    """Start from *obj* (cut to the support) if given, else from random phases."""
+    start = random_init(key, problem, problem.support) if obj is None else support_project(
+        obj, problem.support
+    )
     return ReconState(
-        obj=random_init(key, problem, problem.support),
+        obj=start,
         support=problem.support,
         iteration=jnp.int32(0),
         key=key,
