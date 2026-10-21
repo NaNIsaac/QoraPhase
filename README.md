@@ -24,8 +24,14 @@ Requires Python 3.12+.
 
 **1. Install** into a new virtual environment with [uv](https://docs.astral.sh/uv/):
 
-<!-- test -->
+<!-- test unix -->
 ```sh
+uv venv
+uv pip install qoraphase
+```
+
+<!-- test windows -->
+```powershell
 uv venv
 uv pip install qoraphase
 ```
@@ -38,8 +44,13 @@ pip install qoraphase
 
 **2. Check that it imports**
 
-<!-- test -->
+<!-- test unix -->
 ```sh
+uv run --no-project python -c "import qoraphase"
+```
+
+<!-- test windows -->
+```powershell
 uv run --no-project python -c "import qoraphase"
 ```
 
