@@ -54,7 +54,7 @@ panels = [
 ]
 
 fig, axes = plt.subplots(1, 5, figsize=(12.5, 2.9))
-for ax, (img, title, cmap, lim) in zip(axes, panels):
+for ax, (img, title, cmap, lim) in zip(axes, panels, strict=False):
     vmin, vmax = lim or (None, None)
     ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_title(title, fontsize=10)

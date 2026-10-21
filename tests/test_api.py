@@ -2,9 +2,9 @@
 
 import numpy as np
 import pytest
+from conftest import make_data
 
 import qoraphase as qp
-from conftest import make_data
 
 FAST = qp.Recipe(qp.RAAR(20), qp.ER(10))
 
@@ -55,7 +55,7 @@ def test_batching_matches_unbatched(data):
     kwargs = dict(support=support, recipe=FAST, starts=4, seed=1)
     whole = qp.reconstruct(intensity, batch=None, **kwargs)
     chunked = qp.reconstruct(intensity, batch=2, **kwargs)
-    for a, b in zip(whole, chunked):
+    for a, b in zip(whole, chunked, strict=False):
         assert np.allclose(np.asarray(a.object), np.asarray(b.object), atol=1e-5)
 
 

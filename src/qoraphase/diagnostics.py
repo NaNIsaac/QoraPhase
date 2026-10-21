@@ -33,7 +33,7 @@ def flip_about_origin(a: np.ndarray) -> np.ndarray:
 def peak_offset(intensity: np.ndarray) -> tuple:
     """Offset of the brightest pixel from the array centre, in pixels."""
     peak = np.unravel_index(np.argmax(intensity), intensity.shape)
-    return tuple(int(p - n // 2) for p, n in zip(peak, intensity.shape))
+    return tuple(int(p - n // 2) for p, n in zip(peak, intensity.shape, strict=False))
 
 
 def friedel_offset(intensity: np.ndarray) -> tuple:
@@ -51,7 +51,10 @@ def friedel_offset(intensity: np.ndarray) -> tuple:
     spectrum = np.fft.fftn(data)
     correlation = np.fft.ifftn(spectrum * np.conj(np.fft.fftn(flip_about_origin(data))))
     doubled = np.unravel_index(np.argmax(np.abs(correlation)), data.shape)
-    return tuple(int(round((((p + n // 2) % n) - n // 2) / 2)) for p, n in zip(doubled, data.shape))
+    return tuple(
+        int(round((((p + n // 2) % n) - n // 2) / 2))
+        for p, n in zip(doubled, data.shape, strict=False)
+    )
 
 
 def autocorrelation_fill(intensity: np.ndarray, threshold: float = 0.1) -> tuple:

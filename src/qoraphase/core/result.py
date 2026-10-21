@@ -50,7 +50,7 @@ class Reconstruction:
         if axes is None:
             _, axes = plt.subplots(1, len(panels), figsize=(4 * len(panels), 4))
         axes = np.atleast_1d(axes)
-        for ax, (title, data) in zip(axes, panels):
+        for ax, (title, data) in zip(axes, panels, strict=False):
             ax.imshow(data, cmap="gray" if "amplitude" in title else "twilight")
             ax.set_title(title)
             ax.axis("off")

@@ -4,6 +4,7 @@ Code order is execution order.  No operator-overloading DSL.
 """
 
 from dataclasses import dataclass
+
 import jax
 import jax.numpy as jnp
 from jax import lax

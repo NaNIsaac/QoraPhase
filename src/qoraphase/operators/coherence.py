@@ -23,12 +23,12 @@ EPS = 1e-12
 
 def _embed(kernel: jnp.ndarray, shape: tuple) -> jnp.ndarray:
     """A small center-origin kernel placed at the centre of a zero array of *shape*."""
-    starts = tuple(n // 2 - k // 2 for n, k in zip(shape, kernel.shape))
+    starts = tuple(n // 2 - k // 2 for n, k in zip(shape, kernel.shape, strict=False))
     return lax.dynamic_update_slice(jnp.zeros(shape, kernel.dtype), kernel, starts)
 
 
 def _crop(array: jnp.ndarray, size: tuple) -> jnp.ndarray:
-    starts = tuple(n // 2 - k // 2 for n, k in zip(array.shape, size))
+    starts = tuple(n // 2 - k // 2 for n, k in zip(array.shape, size, strict=False))
     return lax.dynamic_slice(array, starts, size)
 
 
@@ -109,7 +109,7 @@ class PartialCoherence(Stage):
             if isinstance(size, int):
                 size = (size,) * state.obj.ndim
             if len(size) != state.obj.ndim or any(
-                k % 2 == 0 or k > n for k, n in zip(size, state.obj.shape)
+                k % 2 == 0 or k > n for k, n in zip(size, state.obj.shape, strict=False)
             ):
                 raise ValueError(
                     f"kernel {size} must be odd and fit inside the array {state.obj.shape}"

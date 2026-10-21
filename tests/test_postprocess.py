@@ -3,9 +3,9 @@
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from conftest import complex_similarity, flip_about_origin, make_data, make_object
 
 import qoraphase as qp
-from conftest import complex_similarity, flip_about_origin, make_data, make_object
 
 RECIPE = qp.Recipe(qp.RAAR(400, beta=0.9), qp.ER(200))
 
@@ -124,7 +124,7 @@ def test_subpixel_alignment_still_resolves_phase_and_twin():
 def with_ramp(obj, slopes):
     """Multiply by ``exp(2 pi i slopes . r)``, zero phase at the array centre."""
     phase = 0
-    for axis, (n, slope) in enumerate(zip(obj.shape, slopes)):
+    for axis, (n, slope) in enumerate(zip(obj.shape, slopes, strict=False)):
         shape = [1] * obj.ndim
         shape[axis] = -1
         phase = phase + slope * (np.arange(n) - n // 2).reshape(shape)

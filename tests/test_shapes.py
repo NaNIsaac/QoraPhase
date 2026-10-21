@@ -2,9 +2,9 @@
 
 import numpy as np
 import pytest
+from conftest import make_data, similarity
 
 import qoraphase as qp
-from conftest import make_data, similarity
 
 RECIPE = qp.Recipe(qp.RAAR(150, beta=0.9), qp.ER(100))
 

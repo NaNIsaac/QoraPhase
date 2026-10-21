@@ -78,7 +78,7 @@ def register(obj, reference, upsample: int = 1):
         grid = [jnp.asarray(s + offsets) for s in shift]
         local = _evaluate(spectrum, grid)
         best = np.unravel_index(int(jnp.argmax(jnp.abs(local))), local.shape)
-        shift = np.array([s + offsets[b] for s, b in zip(shift, best)])
+        shift = np.array([s + offsets[b] for s, b in zip(shift, best, strict=False)])
         value = local[best]
     return tuple(float(s) for s in shift), value
 
@@ -98,7 +98,7 @@ def _register_and_apply(obj, reference, upsample):
     shift, value = register(obj, reference, upsample)
     whole = tuple(round(s) for s in shift)
     moved = jnp.roll(obj, tuple(-w for w in whole), axis=tuple(range(obj.ndim)))
-    fraction = tuple(s - w for s, w in zip(shift, whole))
+    fraction = tuple(s - w for s, w in zip(shift, whole, strict=False))
     if any(fraction):
         moved = _fourier_shift(moved, tuple(-f for f in fraction))
     return moved * jnp.exp(-1j * jnp.angle(value)), jnp.abs(value)
@@ -133,8 +133,10 @@ def _spectral_peak(obj, pad):
     """Centre of mass of ``|F|^2`` of the zero-padded *obj*, per axis, in padded pixels."""
     shape = obj.shape
     padded_shape = tuple(pad * n for n in shape)
-    before = [m // 2 - n // 2 for m, n in zip(padded_shape, shape)]
-    padded = jnp.pad(obj, [(b, m - n - b) for b, m, n in zip(before, padded_shape, shape)])
+    before = [m // 2 - n // 2 for m, n in zip(padded_shape, shape, strict=False)]
+    padded = jnp.pad(
+        obj, [(b, m - n - b) for b, m, n in zip(before, padded_shape, shape, strict=False)]
+    )
     intensity = jnp.abs(jnp.fft.fftshift(jnp.fft.fftn(jnp.fft.ifftshift(padded)))) ** 2
     # An even-sized spectrum has a lone -m/2 sample with no +m/2 partner; left in,
     # it biases the centre of mass of even a ramp-free real object.
@@ -184,7 +186,7 @@ def remove_ramp(obj, support=None, *, pad: int = 2, iterations: int = 3, zero_ph
     out = obj
     for _ in range(iterations):
         peak = _spectral_peak(jnp.where(inside, out, 0), pad)
-        phase = sum(q * x / (pad * n) for q, x, n in zip(peak, positions, obj.shape))
+        phase = sum(q * x / (pad * n) for q, x, n in zip(peak, positions, obj.shape, strict=False))
         out = out * jnp.exp(-2j * jnp.pi * phase)
 
     if zero_phase:

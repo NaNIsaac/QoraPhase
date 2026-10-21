@@ -2,9 +2,9 @@
 
 import jax.numpy as jnp
 import numpy as np
+from conftest import flip_about_origin, make_data
 
 import qoraphase as qp
-from conftest import flip_about_origin, make_data
 from qoraphase.operators.modulus import modulus_project
 from qoraphase.operators.support import autocorrelation_support, support_project
 

@@ -10,9 +10,9 @@ from dataclasses import dataclass
 
 import jax.numpy as jnp
 import numpy as np
+from conftest import complex_similarity, make_data, similarity
 
 import qoraphase as qp
-from conftest import complex_similarity, make_data, similarity
 
 RECIPE = qp.Recipe(qp.RAAR(400, beta=0.9), qp.ER(200))
 

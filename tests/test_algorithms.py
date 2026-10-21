@@ -3,14 +3,14 @@
 import jax.numpy as jnp
 import numpy as np
 import pytest
-
-import qoraphase as qp
 from conftest import (
     flip_about_origin,
     make_data,
     oriented_similarity,
     similarity,
 )
+
+import qoraphase as qp
 from qoraphase.core.state import ReconState
 
 ALGORITHMS = [qp.ER, qp.HIO, qp.RAAR]

@@ -6,9 +6,9 @@ themselves get tested against data with a known defect injected.
 
 import numpy as np
 import pytest
+from conftest import make_data
 
 import qoraphase as qp
-from conftest import make_data
 from qoraphase.diagnostics import friedel_offset, oversampling, peak_offset
 
 

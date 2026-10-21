@@ -7,9 +7,9 @@ quarter of the way through the iterations, then the full support is restored.
 import jax
 import jax.numpy as jnp
 import numpy as np
+from conftest import complex_similarity, flip_about_origin, make_data
 
 import qoraphase as qp
-from conftest import complex_similarity, flip_about_origin, make_data
 from qoraphase.core.state import initial_state
 from qoraphase.operators.support import half_support
 

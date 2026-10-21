@@ -2,9 +2,9 @@
 
 import numpy as np
 import pytest
+from conftest import make_data
 
 import qoraphase as qp
-from conftest import make_data
 
 FAST = qp.Recipe(qp.ER(2))
 
