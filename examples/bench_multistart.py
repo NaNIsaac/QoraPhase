@@ -1,6 +1,6 @@
 """Time multi-start on CPU and count how many starts converge.
 
-Same object and noiseless intensity as examples/readme_figure.py, no support
+Same synthetic object and noiseless intensity as examples/readme_figure.py, no support
 given.  Prints a Markdown table for the README.
 
 python examples/bench_multistart.py

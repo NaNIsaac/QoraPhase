@@ -1,4 +1,4 @@
-"""Regenerate docs/reconstruction.png, the figure at the top of the README.
+"""Regenerate docs/reconstruction.png, the figure at the top of the README, from a synthetic object.
 
 python examples/readme_figure.py
 """
