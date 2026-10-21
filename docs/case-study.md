@@ -2,8 +2,9 @@
 
 Draft. Sections marked **TODO (GPU)** wait for a GPU environment: JAX has no CUDA build for
 native Windows, and the WSL2 distribution that would provide one is NaNIsaac/DotFiles#23. Every
-number below was measured on CPU; where a number is a ratio from a loaded machine it says so.
-Nothing here claims a GPU result.
+number below was measured on CPU, except one cuFFT probe in section 8, which is not a
+performance claim. Where a number is a ratio from a loaded machine it says so. Nothing here claims
+a GPU result.
 
 ## 1. The physical problem
 
@@ -70,7 +71,7 @@ not overlap. From then on:
 - absolute times from a loaded machine are not quoted as results;
 - every column in a comparison uses the same JAX, NumPy and Python versions. Moving from JAX
   0.11.1 to 0.12 for GPU support changes the CPU baseline, and that change is reported as its
-  own row (FORUM T1).
+  own row (internal note: NaNIsaac FORUM.md, topic T1).
 
 ## 5. Change 1: centered FFT without moving data (F14, QoraPhase#15)
 
@@ -134,7 +135,8 @@ data. Testing that claim turned up two things that matter more than speed
 - **Shrinkwrap threshold.** A looser threshold (0.2) halves the BCDI phase error, but on
   QoraPhase's own sharp synthetic objects it converges in 0 of 32 starts, against 9 and 14 of
   32 at 0.3. A schedule (six rounds at 0.3, then two at 0.2) keeps 9 and 14 of 32 there and
-  matches 0.2 on three BCDI cases. The survey across 3 shapes x 2 sizes x 3 strains x 3 doses
+  matches 0.2 on three BCDI cases. The counts and the BCDI table are in section 4 of
+  `docs/bcdi-support.md` (#21). The survey across 3 shapes x 2 sizes x 3 strains x 3 doses
   (F13e) is running; whether the schedule becomes the default is Isaac's decision after it.
 
 ## 8. Speed and memory against size
@@ -143,7 +145,8 @@ data. Testing that claim turned up two things that matter more than speed
 256^3, for JAX CPU, JAX GPU (WSL2) and QoraPhaseCU CUDA (Windows and WSL2). It will use
 `harness.py`, `XLA_PYTHON_CLIENT_PREALLOCATE=false` so that peak memory means use rather than
 reservation, the same JAX version in every column, and A/A spread next to every ratio. The
-comparison measures the WSL2 cost by building QoraPhaseCU on both sides (FORUM T1).
+comparison measures the WSL2 cost by building QoraPhaseCU on both sides (internal note: NaNIsaac
+FORUM.md, topic T1).
 
 Hardware for that table (QoraPhase#10, `docs/hardware.md`): RTX 5070 (Blackwell, compute
 capability 12.0, 12 GB), driver 610.88 / CUDA 13.3. The `jax-cuda13` 0.12 wheels contain sm_120
@@ -175,5 +178,6 @@ uv run pytest tests/test_equivalence.py tests/test_fft.py
 cd ../QoraPhaseCU && uv sync --group qoraphase && uv run pytest python/tests/test_equivalence.py
 ```
 
-The F13d/F13e probes ran from scratch scripts. The F13e script, grid, command and commit hashes
-are kept in `$DEV/NaNIsaac/_artifacts/f13e-shrinkwrap-20261022/`.
+The F13d/F13e probes ran from scratch scripts. Internal note: the scripts, their raw outputs, the
+F13e grid, the command and the commit hashes are kept outside the repository in
+`$DEV/NaNIsaac/_artifacts/f13e-shrinkwrap-20261022/` (README.txt, `probes/`) on the lab machine.
