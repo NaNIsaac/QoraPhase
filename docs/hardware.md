@@ -31,6 +31,23 @@ find no installable wheel; the resolver lists only `manylinux_2_27_x86_64` and
    capability 12.0) works with the JAX CUDA wheels under WSL2 has not been tested.
 2. A Linux machine with an NVIDIA GPU.
 
+### Blackwell (sm_120) support in the JAX CUDA wheels
+
+The RTX 5070 is compute capability 12.0 (Blackwell). Inspected without running anything: the
+Linux wheels `jax-cuda13-plugin` 0.12.0.1 and `jax-cuda13-pjrt` 0.12.0.1 were downloaded
+(`pip download --platform manylinux_2_27_x86_64`) and their binaries searched for target
+strings. `jax_plugins/xla_cuda13/xla_cuda_plugin.so` (396 MB) contains `sm_120` (12 times),
+`sm_121` (9), `sm_100` (19) and `compute_100` (31), and no `compute_120`; the plugin
+extension modules contain none. That shows the XLA backend knows these architectures; it does
+not show that a program runs on this card, and the CUDA 13 line of wheels (as opposed to
+CUDA 12) is the one that targets Blackwell. The `with-cuda` extra pulls `nvidia-cuda-nvcc`
+13.x (for `ptxas`). Whether JAX 0.12 runs on the RTX 5070 under WSL2 is untested here; the
+project env is JAX 0.11.1 and would have to be upgraded to 0.12 to use these wheels.
+
+For any VRAM measurement set `XLA_PYTHON_CLIENT_PREALLOCATE=false`; otherwise JAX reserves
+75% of the device memory at start-up and the peak-memory figure reflects the reservation, not
+the use.
+
 ## What does work today: CuPy on native Windows
 
 A throwaway environment outside the repository (`uv pip install "cupy-cuda13x[ctk]"`,
