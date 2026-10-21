@@ -1,0 +1,9 @@
+{
+  "total_counts": 130568134.0,
+  "noise_floor": 0.005121238774075978,
+  "error": 0.005036825314164162,
+  "similarity": 0.999999121599249,
+  "complex_similarity": 0.9999987738753516,
+  "support_fraction": 0.016276041666666668,
+  "true_support_fraction": 0.008680555555555556
+}
