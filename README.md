@@ -599,6 +599,27 @@ sigma tied to the fringe spacing of each pattern, or a different span of
 iterations, might do better; these runs do not show that. Run it on your own data
 and compare before relying on it.
 
+## Validation
+
+All test data is **synthetic**; no measured data ships with the repository.
+
+- `tests/test_end_to_end.py` reconstructs a known 24³ object from Poisson-noisy counts (peak
+  1e6 photons) through the default path: `default_recipe`, autocorrelation support,
+  shrinkwrap and 4 starts. The metrics are pinned in `tests/golden/end_to_end.json`.
+  Physical checks:
+  - the Fourier error must sit at the noise floor, 0.9 to 1.05 times the error of the true
+    object against the same counts;
+  - the floor itself must be close to sqrt(N / 4 / ΣI), from var(sqrt(Poisson)) ≈ 1/4;
+  - the shrinkwrap support must be no smaller than the object.
+- The other tests reconstruct synthetic objects in 2D and 3D against an independent numpy
+  FFT (`tests/conftest.py`).
+- Known limits:
+  - The noise-floor check needs the true object, so it applies to synthetic data only.
+  - The fixture has Poisson noise and nothing else: no detector gaps, no partial coherence,
+    no background.
+  - No measured BCDI scan has been validated yet
+    ([#1](https://github.com/NaNIsaac/QoraPhase/issues/1)).
+
 ## What this does not do
 
 - No clustering of runs.
