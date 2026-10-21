@@ -21,6 +21,7 @@ from .diagnostics import Diagnosis, diagnose
 from .genetic import BREEDERS, breed, evolve
 from .models.fft import FFT
 from .operators.coherence import PartialCoherence, UpdateCoherence, partial_coherence
+from .operators.lowpass import LowPass, low_pass
 from .operators.modulus import ModulusProjection
 from .operators.phase import PhaseLimited, phase_limit
 from .operators.shrinkwrap import Shrinkwrap
@@ -38,6 +39,7 @@ __all__ = [
     "HIO",
     "RAAR",
     "Ensemble",
+    "LowPass",
     "ModulusProjection",
     "PRTF",
     "PartialCoherence",
@@ -56,6 +58,7 @@ __all__ = [
     "evolve",
     "prtf",
     "prtf_curve",
+    "low_pass",
     "partial_coherence",
     "phase_limit",
     "reconstruct",

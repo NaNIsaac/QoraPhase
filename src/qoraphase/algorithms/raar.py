@@ -21,7 +21,7 @@ class RAAR(Iterative):
 
     def step(self, state, problem):
         x = state.obj
-        pm, err = modulus_project(x, problem, state.coherence)
+        pm, err = modulus_project(x, problem, state.coherence, state.sigma)
         rm = 2.0 * pm - x
         rs_rm = 2.0 * support_project(rm, state.support) - rm
         obj = 0.5 * self.beta * (rs_rm + x) + (1.0 - self.beta) * pm

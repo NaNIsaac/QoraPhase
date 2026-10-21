@@ -16,6 +16,7 @@ import jax.numpy as jnp
 from jax import lax
 
 from ..recipes.recipe import NO_METRICS, Detwin, Iterative, Recipe, Repeat, Stage
+from .lowpass import LowPass
 
 EPS = 1e-12
 
@@ -128,6 +129,8 @@ def _with_updates(stage, iterations):
             return Repeat(stage.n, _with_updates(stage.body, iterations))
         case Detwin():
             return Detwin(_with_updates(stage.body, iterations), stage.axis)
+        case LowPass():
+            return LowPass(_with_updates(stage.body, iterations), stage.sigma)
     return stage
 
 

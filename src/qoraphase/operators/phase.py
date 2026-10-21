@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from jax import lax
 
 from ..recipes.recipe import Detwin, Iterative, Recipe, Repeat, Stage
+from .lowpass import LowPass
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,8 @@ def _limit(stage, low, high):
             return Repeat(stage.n, _limit(stage.body, low, high))
         case Detwin():
             return Detwin(_limit(stage.body, low, high), stage.axis)
+        case LowPass():
+            return LowPass(_limit(stage.body, low, high), stage.sigma)
     return stage
 
 

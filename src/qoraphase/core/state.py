@@ -22,6 +22,18 @@ class ReconState(NamedTuple):
     key: jax.Array  # PRNG key
     # Partial-coherence kernel, center-origin; None for a coherent model.
     coherence: jnp.ndarray | None = None
+    # Low-pass schedule (start iteration, length, first sigma, last sigma); None
+    # means the modulus constraint uses the data as measured.
+    lowpass: tuple | None = None
+
+    @property
+    def sigma(self) -> jnp.ndarray | None:
+        """Blur width of the data at the current iteration, or None."""
+        if self.lowpass is None:
+            return None
+        start, length, first, last = self.lowpass
+        progress = jnp.clip((self.iteration - start) / jnp.maximum(length - 1.0, 1.0), 0.0, 1.0)
+        return first + (last - first) * progress
 
 
 def random_init(key: jax.Array, problem, support: jnp.ndarray) -> jnp.ndarray:

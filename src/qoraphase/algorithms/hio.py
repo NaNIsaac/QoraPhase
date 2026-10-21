@@ -16,7 +16,7 @@ class HIO(Iterative):
     beta: float = 0.9
 
     def step(self, state, problem):
-        projected, err = modulus_project(state.obj, problem, state.coherence)
+        projected, err = modulus_project(state.obj, problem, state.coherence, state.sigma)
         obj = jnp.where(state.support, projected, state.obj - self.beta * projected)
         return state._replace(obj=obj, iteration=state.iteration + 1), err
 
