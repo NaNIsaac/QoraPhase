@@ -22,9 +22,28 @@ true object: 7.9e-7. Script: `examples/readme_figure.py`.
 
 Requires Python 3.12+.
 
-```bash
+**1. Install** into a new virtual environment with [uv](https://docs.astral.sh/uv/):
+
+<!-- test -->
+```sh
+uv venv
+uv pip install qoraphase
+```
+
+With pip instead:
+
+```sh
 pip install qoraphase
 ```
+
+**2. Check that it imports**
+
+<!-- test -->
+```sh
+uv run --no-project python -c "import qoraphase"
+```
+
+**3. Reconstruct**
 
 ```python
 import numpy as np
