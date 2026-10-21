@@ -45,7 +45,7 @@ composable pieces of a recipe, and multi-start runs are vectorised with `vmap`.
 |---|---|
 | **Origin** | Every public array is **center-origin**: index `n // 2` is q=0. `ifftshift` is internal; never call it yourself. |
 | **`intensity`** | A measured **intensity**, not an amplitude. Internally `sqrt(clip(intensity, 0))`. |
-| **`mask`** | `True` marks an **unusable** pixel (beamstop, hot, saturated). Masked pixels are left unconstrained — never forced to zero. |
+| **`mask`** | `True` marks an **unusable** pixel (beamstop, hot, saturated). Masked pixels are left unconstrained — never forced to zero. NaN or Inf is refused even under the mask: set those pixels to 0. `diagnose` ignores masked pixels for the peak, negative and NaN checks. |
 | **`support`** | `True` is inside the object. Omit it and an autocorrelation support is derived (loose; pass a real one when you have it). |
 
 ## Composing a reconstruction

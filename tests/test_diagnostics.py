@@ -114,6 +114,48 @@ def test_non_finite_pixels_are_flagged(data):
     assert any("NaN" in w for w in qp.diagnose(broken, support=support).warnings)
 
 
+def test_masked_pixels_do_not_set_the_peak(data):
+    _, support, intensity = data
+    hot = intensity.copy()
+    hot[3, 5] = 100 * intensity.max()
+    mask = np.zeros_like(intensity, bool)
+    mask[3, 5] = True
+    assert qp.diagnose(hot, support=support).peak_offset != (0, 0)
+    report = qp.diagnose(hot, mask=mask, support=support)
+    assert report.peak_offset == (0, 0)
+    assert report.warnings == ()
+
+
+def test_masked_negative_pixels_are_not_flagged(data):
+    _, support, intensity = data
+    shifted_background = intensity - 0.5 * intensity.mean()
+    mask = shifted_background < 0
+    report = qp.diagnose(shifted_background, mask=mask, support=support)
+    assert report.negative_fraction == 0
+    assert not any("negative" in w for w in report.warnings)
+
+
+def test_nan_under_the_mask_is_explained(data):
+    _, support, intensity = data
+    gap = intensity.copy()
+    gap[0] = np.nan
+    mask = np.zeros_like(intensity, bool)
+    mask[0] = True
+    warnings = qp.diagnose(gap, mask=mask, support=support).warnings
+    assert any("refuses these even under the mask" in w for w in warnings)
+    with pytest.raises(ValueError):
+        qp.CDI(gap, mask=mask, support=support)
+    filled = np.where(mask, 0.0, gap)
+    assert qp.diagnose(filled, mask=mask, support=support).warnings == ()
+    qp.CDI(filled, mask=mask, support=support)
+
+
+def test_rejects_a_mask_of_the_wrong_shape(data):
+    _, _, intensity = data
+    with pytest.raises(ValueError, match="mask has shape"):
+        qp.diagnose(intensity, mask=np.zeros((3, 3), bool))
+
+
 def test_a_loose_support_is_flagged(data):
     _, _, intensity = data
     report = qp.diagnose(intensity, support=np.ones_like(intensity, bool))
