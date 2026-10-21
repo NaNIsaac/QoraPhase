@@ -143,8 +143,17 @@ Each follows from the tables above; the explanations marked *hypothesis* were no
    1024² (1.05 M voxels) runs at 164 iterations/s, 128³ (2.10 M voxels) at 50, so twice
    the voxels cost 3.3x the time per iteration (cache behaviour of the 3D transform is a
    *hypothesis*, not measured). At 128³ one
-   iteration takes about 14.5 ms; a 256³ step measured 202 ms, which would put the default
-   recipe near 2.4 minutes per start (an extrapolation of 720 x 0.202 s, not a run).
+   iteration of the recipe averages 20.2 ms (14.52 s / 720, all stages and Shrinkwrap
+   included), while a single isolated RAAR step measured 14.5 ms in the primitives table;
+   the two came from different parts of the same run and differ by 1.4x. A second run of
+   the 128³ stages on a machine busy with other jobs gave 33-38 ms per iteration in
+   every stage (RAAR, HIO, ER, Shrinkwrap loop) against 39 ms for an isolated RAAR step in
+   the same process, so the per-iteration cost inside `lax.scan` is not higher than the
+   isolated step there; the 1.4x gap in the first run is most likely load variation (this
+   machine showed up to 2.5x between identical runs), not a per-stage overhead, but this
+   was not isolated further. Use 20 ms (end to end) for run-time estimates and 14.5 ms
+   only as the best isolated step. A 256³ step measured 202 ms, which would put the
+   default recipe near 2.4 minutes per start (an extrapolation of 720 x 0.202 s, not a run).
 6. **Batching starts helps but is not free:** per-start cost falls to about half at 8
    starts (128²: 0.10 to 0.05 s; 32³: 0.21 to 0.11 s) and total time still grows with
    the number of starts.
