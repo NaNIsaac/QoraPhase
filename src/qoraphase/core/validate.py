@@ -19,9 +19,7 @@ def check_inputs(intensity, support, mask) -> None:
 
     for name, arr in (("support", support), ("mask", mask)):
         if arr is not None and arr.shape != intensity.shape:
-            raise ValueError(
-                f"{name}.shape {arr.shape} != intensity.shape {intensity.shape}"
-            )
+            raise ValueError(f"{name}.shape {arr.shape} != intensity.shape {intensity.shape}")
 
     if mask is not None and bool(np.all(mask)):
         raise ValueError("mask marks every pixel as bad; nothing left to fit")

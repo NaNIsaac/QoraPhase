@@ -73,9 +73,7 @@ def test_autocorrelation_support_fits_the_object(data):
     auto = np.asarray(autocorrelation_support(jnp.asarray(intensity), 0.1))
 
     # Number of support pixels falling outside `auto`, for every shift at once.
-    spill = np.fft.ifftn(
-        np.fft.fftn(~auto) * np.conj(np.fft.fftn(support))
-    ).real.round()
+    spill = np.fft.ifftn(np.fft.fftn(~auto) * np.conj(np.fft.fftn(support))).real.round()
     assert spill.min() == 0  # some translate of the object fits entirely inside
 
     assert auto.sum() > support.sum()  # loose: roughly twice the object

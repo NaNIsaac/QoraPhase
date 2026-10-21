@@ -12,7 +12,7 @@ from qoraphase.core.state import initial_state
 # Sums to a real positive number, so breeding does not rotate it.
 ALPHA = jnp.array([4 + 0j, 1 + 1j, 1 - 1j])
 BETA = jnp.array([1 + 0j, 1j, -1j])
-R2 = 2 ** 0.25  # sqrt(|alpha|) where |alpha| = sqrt 2 and |beta| = 1
+R2 = 2**0.25  # sqrt(|alpha|) where |alpha| = sqrt 2 and |beta| = 1
 
 
 def test_avg_ab_is_the_plain_mean():
@@ -20,16 +20,17 @@ def test_avg_ab_is_the_plain_mean():
 
 
 def test_sqrt_ab_is_geometric_in_amplitude_and_arithmetic_in_phase():
-    expected = np.array(
-        [2.0, R2 * np.exp(3j * np.pi / 8), R2 * np.exp(-3j * np.pi / 8)]
-    )
+    expected = np.array([2.0, R2 * np.exp(3j * np.pi / 8), R2 * np.exp(-3j * np.pi / 8)])
     assert np.allclose(qp.breed("sqrt_ab", ALPHA, BETA), expected)
 
 
 def test_pa_modes_keep_the_phase_of_alpha():
     phase = np.exp(1j * np.array([0.0, np.pi / 4, -np.pi / 4]))
     assert np.allclose(qp.breed("sqrt_ab_pa", ALPHA, BETA), [2.0, R2, R2] * phase)
-    assert np.allclose(qp.breed("avg_ab_pa", ALPHA, BETA), [2.5, (np.sqrt(2) + 1) / 2, (np.sqrt(2) + 1) / 2] * phase)
+    assert np.allclose(
+        qp.breed("avg_ab_pa", ALPHA, BETA),
+        [2.5, (np.sqrt(2) + 1) / 2, (np.sqrt(2) + 1) / 2] * phase,
+    )
     assert np.allclose(qp.breed("b_pa", ALPHA, BETA), [1.0, 1.0, 1.0] * phase)
 
 
@@ -149,7 +150,9 @@ def three_ways(obj_kwargs, seeds):
     for seed in seeds:
         counts["plain"] += converged(problem.reconstruct(same_budget, starts=8, seed=seed))
         for mode in ("clone", "sqrt_ab"):
-            evolved = qp.evolve(problem, per_generation, starts=8, generations=3, breed=mode, seed=seed)
+            evolved = qp.evolve(
+                problem, per_generation, starts=8, generations=3, breed=mode, seed=seed
+            )
             counts[mode] += converged(evolved)
             if mode == "sqrt_ab":
                 for run in evolved:

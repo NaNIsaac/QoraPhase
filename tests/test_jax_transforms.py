@@ -54,7 +54,9 @@ def test_recipe_survives_a_jit_boundary(problem):
     def go(p, r, s):
         return r.run(s, p)[1]
 
-    assert np.allclose(np.asarray(go(problem, FAST, state)), np.asarray(FAST.run(state, problem)[1]), atol=1e-5)
+    assert np.allclose(
+        np.asarray(go(problem, FAST, state)), np.asarray(FAST.run(state, problem)[1]), atol=1e-5
+    )
 
 
 def test_vmap_matches_a_python_loop(problem):

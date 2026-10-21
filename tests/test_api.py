@@ -46,9 +46,7 @@ def test_starts_are_independent(data):
     _, support, intensity = data
     ensemble = qp.reconstruct(intensity, support=support, recipe=FAST, starts=3)
     first = np.asarray(ensemble[0].object)
-    assert not any(
-        np.array_equal(first, np.asarray(run.object)) for run in ensemble[1:]
-    )
+    assert not any(np.array_equal(first, np.asarray(run.object)) for run in ensemble[1:])
 
 
 def test_batching_matches_unbatched(data):

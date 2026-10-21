@@ -20,9 +20,7 @@ def test_adjoint_inverts_forward(model):
 
 def test_unitary_preserves_norm(model):
     obj = jnp.asarray(make_object())
-    assert np.isclose(
-        np.linalg.norm(model.forward(obj)), np.linalg.norm(obj), rtol=1e-5
-    )
+    assert np.isclose(np.linalg.norm(model.forward(obj)), np.linalg.norm(obj), rtol=1e-5)
 
 
 def test_matches_reference_transform(model):

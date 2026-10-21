@@ -38,17 +38,17 @@ class ReconState(NamedTuple):
 
 def random_init(key: jax.Array, problem, support: jnp.ndarray) -> jnp.ndarray:
     """Measured amplitude with uniformly random phase, back-transformed."""
-    phase = jax.random.uniform(
-        key, problem.amplitude.shape, minval=0.0, maxval=2.0 * jnp.pi
-    )
+    phase = jax.random.uniform(key, problem.amplitude.shape, minval=0.0, maxval=2.0 * jnp.pi)
     obj = problem.model.adjoint(problem.amplitude * jnp.exp(1j * phase))
     return support_project(obj, support)
 
 
 def initial_state(key: jax.Array, problem, obj: jnp.ndarray | None = None) -> ReconState:
     """Start from *obj* (cut to the support) if given, else from random phases."""
-    start = random_init(key, problem, problem.support) if obj is None else support_project(
-        obj, problem.support
+    start = (
+        random_init(key, problem, problem.support)
+        if obj is None
+        else support_project(obj, problem.support)
     )
     return ReconState(
         obj=start,

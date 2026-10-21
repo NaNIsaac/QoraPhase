@@ -51,10 +51,7 @@ def friedel_offset(intensity: np.ndarray) -> tuple:
     spectrum = np.fft.fftn(data)
     correlation = np.fft.ifftn(spectrum * np.conj(np.fft.fftn(flip_about_origin(data))))
     doubled = np.unravel_index(np.argmax(np.abs(correlation)), data.shape)
-    return tuple(
-        int(round((((p + n // 2) % n) - n // 2) / 2))
-        for p, n in zip(doubled, data.shape)
-    )
+    return tuple(int(round((((p + n // 2) % n) - n // 2) / 2)) for p, n in zip(doubled, data.shape))
 
 
 def autocorrelation_fill(intensity: np.ndarray, threshold: float = 0.1) -> tuple:
@@ -157,9 +154,7 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
     total = float(np.prod(ratios))
 
     if support is None:
-        autocorrelation = np.abs(
-            np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(finite)))
-        )
+        autocorrelation = np.abs(np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(finite))))
         support = autocorrelation > threshold * autocorrelation.max()
     support = np.asarray(support, bool)
 

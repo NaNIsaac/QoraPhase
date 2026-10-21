@@ -21,12 +21,12 @@ RECIPE = qp.Recipe(qp.RAAR(400, beta=0.9), qp.ER(200))
 class QuadraticPhase:
     """``FFT(chirp * obj)``: a unitary stand-in for a near-field propagator.
 
-    The chirp is applied in *object* space, so unlike a detector-space phase it
-    changes the measured magnitudes -- which is what makes this a genuinely
-    different inverse problem rather than a relabelling.
+     The chirp is applied in *object* space, so unlike a detector-space phase it
+     changes the measured magnitudes -- which is what makes this a genuinely
+     different inverse problem rather than a relabelling.
 
-    Holds no arrays, so it stays hashable and can live in a meta field
-   .
+     Holds no arrays, so it stays hashable and can live in a meta field
+    .
     """
 
     # 0.1 wraps the phase several times across the object -- enough to separate
@@ -35,22 +35,16 @@ class QuadraticPhase:
     strength: float = 0.1
 
     def _chirp(self, shape):
-        grids = jnp.meshgrid(
-            *[jnp.arange(n) - n // 2 for n in shape], indexing="ij"
-        )
+        grids = jnp.meshgrid(*[jnp.arange(n) - n // 2 for n in shape], indexing="ij")
         r2 = sum(g.astype(jnp.float32) ** 2 for g in grids)
         return jnp.exp(1j * self.strength * r2)
 
     def forward(self, obj):
         chirped = obj * self._chirp(obj.shape)
-        return jnp.fft.fftshift(
-            jnp.fft.fftn(jnp.fft.ifftshift(chirped), norm="ortho")
-        )
+        return jnp.fft.fftshift(jnp.fft.fftn(jnp.fft.ifftshift(chirped), norm="ortho"))
 
     def adjoint(self, wave):
-        obj = jnp.fft.fftshift(
-            jnp.fft.ifftn(jnp.fft.ifftshift(wave), norm="ortho")
-        )
+        obj = jnp.fft.fftshift(jnp.fft.ifftn(jnp.fft.ifftshift(wave), norm="ortho"))
         return obj * jnp.conj(self._chirp(obj.shape))
 
 
@@ -59,9 +53,7 @@ def test_toy_model_is_unitary():
     model = QuadraticPhase()
     obj = jnp.asarray(make_data()[0])
     assert np.allclose(model.adjoint(model.forward(obj)), obj, atol=1e-5)
-    assert np.isclose(
-        np.linalg.norm(model.forward(obj)), np.linalg.norm(obj), rtol=1e-5
-    )
+    assert np.isclose(np.linalg.norm(model.forward(obj)), np.linalg.norm(obj), rtol=1e-5)
 
 
 def test_the_model_changes_the_measurement():
@@ -78,9 +70,7 @@ def test_algorithms_reconstruct_through_a_custom_model():
     obj, support, _ = make_data(m=10, seed=3)
     intensity = np.abs(np.asarray(model.forward(jnp.asarray(obj)))) ** 2
 
-    ensemble = qp.reconstruct(
-        intensity, support=support, model=model, recipe=RECIPE, starts=8
-    )
+    ensemble = qp.reconstruct(intensity, support=support, model=model, recipe=RECIPE, starts=8)
     assert ensemble.best.error < 1e-3
     assert similarity(ensemble.best.object, obj) > 0.95
 
@@ -113,9 +103,7 @@ def test_the_right_model_recovers_the_phase():
     obj, support, _ = make_data(m=10, seed=3)
     intensity = np.abs(np.asarray(model.forward(jnp.asarray(obj)))) ** 2
 
-    ensemble = qp.reconstruct(
-        intensity, support=support, model=model, recipe=RECIPE, starts=8
-    )
+    ensemble = qp.reconstruct(intensity, support=support, model=model, recipe=RECIPE, starts=8)
     assert complex_similarity(ensemble.best.object, obj) > 0.95
 
 

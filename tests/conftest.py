@@ -35,9 +35,7 @@ def make_object(shape=(32, 32), m=10, seed=0, centrosymmetric=False):
     """
     rng = np.random.default_rng(seed)
     ndim = len(shape)
-    block = rng.uniform(0.5, 1.0, (m,) * ndim) * np.exp(
-        1j * rng.uniform(-0.5, 0.5, (m,) * ndim)
-    )
+    block = rng.uniform(0.5, 1.0, (m,) * ndim) * np.exp(1j * rng.uniform(-0.5, 0.5, (m,) * ndim))
     if not centrosymmetric:
         block = block * (np.indices((m,) * ndim).sum(0) < m)
 

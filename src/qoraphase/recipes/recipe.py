@@ -36,9 +36,7 @@ class Iterative(Stage):
         raise NotImplementedError
 
     def run(self, state, problem):
-        return lax.scan(
-            lambda s, _: self.step(s, problem), state, None, length=self.n
-        )
+        return lax.scan(lambda s, _: self.step(s, problem), state, None, length=self.n)
 
 
 @dataclass(frozen=True, init=False)

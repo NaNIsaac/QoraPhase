@@ -30,9 +30,9 @@ pip install qoraphase
 import numpy as np
 import qoraphase as qp
 
-intensity = np.load("pattern.npy")   # centred 2D or 3D diffraction intensity
-result = qp.reconstruct(intensity)   # pass support=... if you have one
-result.plot()                        # result.amplitude, result.phase
+intensity = np.load("pattern.npy")  # centred 2D or 3D diffraction intensity
+result = qp.reconstruct(intensity)  # pass support=... if you have one
+result.plot()  # result.amplitude, result.phase
 ```
 
 QoraPhase does not read files: you bring a `numpy` or `jax` array. Iterative
@@ -140,15 +140,15 @@ in Clark et al. 2012 and cohere's `pcdi`) and fits the blurred model:
 
 ```python
 recipe = qp.Recipe(
-    qp.RAAR(200, beta=0.9),                      # coherent first: the first kernel
-    qp.partial_coherence(                        # estimate comes from this object
+    qp.RAAR(200, beta=0.9),  # coherent first: the first kernel
+    qp.partial_coherence(  # estimate comes from this object
         qp.RAAR(100, beta=0.9),
         qp.ER(200),
-        kernel=7,                                # odd size in pixels, or one per axis
+        kernel=7,  # odd size in pixels, or one per axis
     ),
 )
 result = problem.reconstruct(recipe)
-result.coherence                                 # the estimated kernel, sums to 1
+result.coherence  # the estimated kernel, sums to 1
 ```
 
 The kernel is re-estimated before every algorithm stage inside the wrapper, so
@@ -226,8 +226,8 @@ conjugate flip. No iteration can remove those — they are exact symmetries of t
 constraints — so they are resolved afterwards:
 
 ```python
-aligned = ensemble.align()      # every run brought onto the best one
-mean = ensemble.average()       # coherent mean of the aligned runs
+aligned = ensemble.align()  # every run brought onto the best one
+mean = ensemble.average()  # coherent mean of the aligned runs
 ```
 
 **Never average runs without aligning them** (`average()` aligns for you). Each
@@ -367,8 +367,8 @@ aligned arrays).
 
 ```python
 ensemble = qp.evolve(problem, recipe, starts=8, generations=3, breed="sqrt_ab", cull=[2, 2])
-len(ensemble)      # 4: the last generation
-ensemble.history   # the earlier generations, oldest first
+len(ensemble)  # 4: the last generation
+ensemble.history  # the earlier generations, oldest first
 ```
 
 `recipe` may be a sequence with one recipe per generation. `cull` is an int or a
@@ -397,7 +397,9 @@ def box_object(m, seed):
     rng = np.random.default_rng(seed)
     obj = np.zeros((32, 32), complex)
     lo = 16 - m // 2
-    obj[lo : lo + m, lo : lo + m] = rng.uniform(0.5, 1, (m, m)) * np.exp(1j * rng.uniform(-0.5, 0.5, (m, m)))
+    obj[lo : lo + m, lo : lo + m] = rng.uniform(0.5, 1, (m, m)) * np.exp(
+        1j * rng.uniform(-0.5, 0.5, (m, m))
+    )
     return obj
 
 
@@ -421,7 +423,9 @@ for m, object_seed in ((10, 0), (8, 5)):
             converged(problem.reconstruct(same_budget, starts=8, seed=seed))
         )
         for mode in ("clone", "sqrt_ab", "avg_ab"):
-            bred = qp.evolve(problem, per_generation, starts=8, generations=3, breed=mode, seed=seed)
+            bred = qp.evolve(
+                problem, per_generation, starts=8, generations=3, breed=mode, seed=seed
+            )
             counts[mode].append(converged(bred))
     for name, per_seed in counts.items():
         print(f"  {name:18s} {sum(per_seed):2d}/80  {per_seed}")
@@ -543,11 +547,23 @@ def poisson(intensity, peak):
 cases = []
 for seed in (1, 2, 3):
     obj = make_object(48, 14, seed)
-    cases.append((f"autocorrelation support, object {seed}", obj, qp.CDI(pattern(obj)), default_like, False))
+    cases.append(
+        (f"autocorrelation support, object {seed}", obj, qp.CDI(pattern(obj)), default_like, False)
+    )
 obj = make_object(32, 10, 0, box=True)
-cases.append(("square support", obj, qp.CDI(pattern(obj), support=np.abs(obj) > 0), box_like, False))
+cases.append(
+    ("square support", obj, qp.CDI(pattern(obj), support=np.abs(obj) > 0), box_like, False)
+)
 obj = make_object(48, 14, 1)
-cases.append(("Poisson noise, 5000 counts at peak", obj, qp.CDI(poisson(pattern(obj), 5000)), default_like, True))
+cases.append(
+    (
+        "Poisson noise, 5000 counts at peak",
+        obj,
+        qp.CDI(poisson(pattern(obj), 5000)),
+        default_like,
+        True,
+    )
+)
 
 schedules = [None, (1.0, 0.0), (2.0, 0.0)]
 print(f"{'':40s}" + "".join(f"{str(s):>14s}" for s in schedules))
@@ -557,7 +573,11 @@ for name, obj, problem, build, by_agreement in cases:
         good = 0
         for seed in range(16):
             for run in problem.reconstruct(build(sigma), starts=32, seed=seed):
-                good += agreement(np.asarray(run.object), obj) > 0.95 if by_agreement else run.error < 1e-3
+                good += (
+                    agreement(np.asarray(run.object), obj) > 0.95
+                    if by_agreement
+                    else run.error < 1e-3
+                )
         row.append(good)
     print(f"{name:40s}" + "".join(f"{g:>14d}" for g in row))
 ```

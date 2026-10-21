@@ -118,9 +118,7 @@ def test_detwin_rescues_starts_on_a_centrosymmetric_support():
     support is worth far more than any amount of detwinning.
     """
     _, support, intensity = make_data(m=11, seed=3, centrosymmetric=True)
-    assert converged_count(support, intensity, DETWIN) > converged_count(
-        support, intensity, PLAIN
-    )
+    assert converged_count(support, intensity, DETWIN) > converged_count(support, intensity, PLAIN)
 
 
 def test_detwin_does_not_disturb_a_well_determined_support():

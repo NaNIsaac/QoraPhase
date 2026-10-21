@@ -45,7 +45,5 @@ def autocorrelation_support(intensity: jnp.ndarray, threshold: float = 0.1) -> j
     starting support and relies on shrinkwrap to tighten it.  A measured support
     converges better; pass one when you have it.
     """
-    ac = jnp.abs(
-        jnp.fft.fftshift(jnp.fft.ifftn(jnp.fft.ifftshift(intensity)))
-    )
+    ac = jnp.abs(jnp.fft.fftshift(jnp.fft.ifftn(jnp.fft.ifftshift(intensity))))
     return ac > threshold * ac.max()

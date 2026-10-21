@@ -54,11 +54,7 @@ class CDI:
 
         intensity = jnp.asarray(intensity)
         amplitude = jnp.sqrt(jnp.clip(intensity, 0.0, None))
-        mask = (
-            jnp.zeros(intensity.shape, bool)
-            if mask_np is None
-            else jnp.asarray(mask_np, bool)
-        )
+        mask = jnp.zeros(intensity.shape, bool) if mask_np is None else jnp.asarray(mask_np, bool)
         support = (
             autocorrelation_support(intensity, support_threshold)
             if support_np is None

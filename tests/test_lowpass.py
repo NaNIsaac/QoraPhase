@@ -19,7 +19,9 @@ def test_zero_sigma_changes_nothing(problem):
 
 def test_sigma_ramps_linearly_over_the_stage_and_holds_after():
     state = initial_state(jax.random.key(0), qp.CDI(make_data()[2]))
-    state = state._replace(lowpass=(jnp.int32(5), jnp.float32(11), jnp.float32(2.0), jnp.float32(0.0)))
+    state = state._replace(
+        lowpass=(jnp.int32(5), jnp.float32(11), jnp.float32(2.0), jnp.float32(0.0))
+    )
 
     def at(iteration):
         return float(state._replace(iteration=jnp.int32(iteration)).sigma)
@@ -122,12 +124,12 @@ def test_it_does_not_stop_an_easy_problem_from_converging():
     """Only a floor, not a claim of benefit: the README table shows no consistent gain."""
     _, support, intensity = make_data(m=10, seed=3)
     problem = qp.CDI(intensity, support=support)
-    recipe = qp.Recipe(
-        qp.low_pass(qp.RAAR(400, beta=0.9), sigma=(1.0, 0.0)), qp.ER(200)
-    )
+    recipe = qp.Recipe(qp.low_pass(qp.RAAR(400, beta=0.9), sigma=(1.0, 0.0)), qp.ER(200))
 
     converged = sum(
-        run.error < 1e-3 for seed in range(2) for run in problem.reconstruct(recipe, starts=8, seed=seed)
+        run.error < 1e-3
+        for seed in range(2)
+        for run in problem.reconstruct(recipe, starts=8, seed=seed)
     )
 
     assert converged >= 14  # all 16 converged when this was measured

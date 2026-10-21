@@ -66,9 +66,7 @@ class Shrinkwrap(Stage):
             level = blurred.max()
         else:
             inside = jnp.where(state.support, blurred, 0.0)
-            level = jnp.sqrt(
-                jnp.sum(inside**2) / jnp.maximum(jnp.sum(state.support), 1)
-            )
+            level = jnp.sqrt(jnp.sum(inside**2) / jnp.maximum(jnp.sum(state.support), 1))
         return state._replace(support=blurred > self.threshold * level), NO_METRICS
 
 

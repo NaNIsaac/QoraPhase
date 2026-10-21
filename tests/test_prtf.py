@@ -61,7 +61,9 @@ def test_prtf_finds_the_frequency_where_the_runs_stop_agreeing():
     f = np.hypot(*np.meshgrid(*[(np.arange(n) - n // 2) / n] * 2, indexing="ij"))
     rng = np.random.default_rng(0)
     runs = [
-        qp.FFT().adjoint(jnp.asarray(spectrum * np.exp(1j * 4 * np.sqrt(2) * f * rng.normal(size=f.shape))))
+        qp.FFT().adjoint(
+            jnp.asarray(spectrum * np.exp(1j * 4 * np.sqrt(2) * f * rng.normal(size=f.shape)))
+        )
         for _ in range(48)
     ]
 

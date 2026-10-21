@@ -23,23 +23,15 @@ block = (1 - 0.5 * np.exp(-(x**2 + y**2) / 20)) * np.exp(
     1j * 1.2 * np.exp(-((x + 4) ** 2 + (y + 4) ** 2) / 30)
 )
 obj = np.zeros((N, N), complex)
-obj[N // 2 - M // 2 : N // 2 + M // 2, N // 2 - M // 2 : N // 2 + M // 2] = (
-    block * inside
-)
+obj[N // 2 - M // 2 : N // 2 + M // 2, N // 2 - M // 2 : N // 2 + M // 2] = block * inside
 
-intensity = (
-    np.abs(np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(obj), norm="ortho"))) ** 2
-)
+intensity = np.abs(np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(obj), norm="ortho"))) ** 2
 
 ensemble = qp.reconstruct(intensity, starts=STARTS)  # no support: derived from the data
 best = ensemble.best
 rec = np.asarray(qp.align_to(best.object, obj))
-print(
-    f"best of {STARTS} starts: Fourier error {best.error:.1e}, {best.metrics.size} iterations"
-)
-print(
-    f"relative error vs. true object: {np.linalg.norm(rec - obj) / np.linalg.norm(obj):.1e}"
-)
+print(f"best of {STARTS} starts: Fourier error {best.error:.1e}, {best.metrics.size} iterations")
+print(f"relative error vs. true object: {np.linalg.norm(rec - obj) / np.linalg.norm(obj):.1e}")
 
 crop = (slice(N // 2 - 16, N // 2 + 16),) * 2
 inside_rec = np.abs(rec) > 0.1 * np.abs(rec).max()

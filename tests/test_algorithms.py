@@ -81,9 +81,7 @@ def test_recovers_a_known_object():
 
 
 def success_rate(support, intensity, starts=8, seed=1):
-    ensemble = qp.reconstruct(
-        intensity, support=support, recipe=RECOVERY, starts=starts, seed=seed
-    )
+    ensemble = qp.reconstruct(intensity, support=support, recipe=RECOVERY, starts=starts, seed=seed)
     return sum(run.error < 1e-4 for run in ensemble) / starts
 
 

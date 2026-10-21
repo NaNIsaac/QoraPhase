@@ -27,12 +27,8 @@ block = (1 - 0.5 * np.exp(-(x**2 + y**2) / 20)) * np.exp(
     1j * 1.2 * np.exp(-((x + 4) ** 2 + (y + 4) ** 2) / 30)
 )
 obj = np.zeros((N, N), complex)
-obj[N // 2 - M // 2 : N // 2 + M // 2, N // 2 - M // 2 : N // 2 + M // 2] = (
-    block * inside
-)
-intensity = (
-    np.abs(np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(obj), norm="ortho"))) ** 2
-)
+obj[N // 2 - M // 2 : N // 2 + M // 2, N // 2 - M // 2 : N // 2 + M // 2] = block * inside
+intensity = np.abs(np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(obj), norm="ortho"))) ** 2
 
 
 def vmapped(s):
@@ -64,9 +60,7 @@ print(
     f"JAX {jax.__version__} ({jax.default_backend()}) | "
     f"Python {platform.python_version()}"
 )
-print(
-    f"{N}x{N} intensity, default recipe, no support; converged = Fourier error < {THRESHOLD:g}"
-)
+print(f"{N}x{N} intensity, default recipe, no support; converged = Fourier error < {THRESHOLD:g}")
 print()
 print(
     "| starts | first call (incl. compile) | vmap, warm | loop of starts=1, warm | converged (vmap) | converged (loop) |"

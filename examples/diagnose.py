@@ -98,9 +98,7 @@ def main(argv=None):
 
     intensity = load(args.path, args.key)
     mask = None if args.mask is None else load(args.mask, args.mask_key).astype(bool)
-    support = (
-        None if args.support is None else load(args.support, args.support_key).astype(bool)
-    )
+    support = None if args.support is None else load(args.support, args.support_key).astype(bool)
 
     report = qp.diagnose(intensity, mask=mask, support=support)
     print(report)

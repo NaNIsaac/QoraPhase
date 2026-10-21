@@ -130,11 +130,7 @@ def evolve(
 
     if recipe is None:
         recipe = default_recipe()
-    recipes = (
-        list(recipe)
-        if isinstance(recipe, (list, tuple))
-        else [recipe] * generations
-    )
+    recipes = list(recipe) if isinstance(recipe, (list, tuple)) else [recipe] * generations
     if len(recipes) != generations:
         raise ValueError(f"got {len(recipes)} recipes for {generations} generations")
     recipes = [r if isinstance(r, Recipe) else Recipe(r) for r in recipes]

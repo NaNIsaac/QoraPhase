@@ -143,8 +143,11 @@ def _spectral_peak(obj, pad):
         intensity = intensity * keep.reshape([-1 if a == axis else 1 for a in range(obj.ndim)])
     total = intensity.sum()
     return tuple(
-        (intensity.sum(axis=tuple(a for a in range(obj.ndim) if a != axis))
-         * (jnp.arange(m) - m // 2)).sum() / total
+        (
+            intensity.sum(axis=tuple(a for a in range(obj.ndim) if a != axis))
+            * (jnp.arange(m) - m // 2)
+        ).sum()
+        / total
         for axis, m in enumerate(padded_shape)
     )
 

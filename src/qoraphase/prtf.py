@@ -65,7 +65,9 @@ def prtf_curve(objects, intensity, mask=None):
         return jnp.bincount(shell.ravel(), (weights * usable).ravel(), length=count)
 
     measured = total(amplitude)
-    value = jnp.where(measured > 0, total(jnp.abs(mean)) / jnp.where(measured > 0, measured, 1), jnp.nan)
+    value = jnp.where(
+        measured > 0, total(jnp.abs(mean)) / jnp.where(measured > 0, measured, 1), jnp.nan
+    )
     frequency = jnp.arange(count) / longest
 
     below = value < DROP
