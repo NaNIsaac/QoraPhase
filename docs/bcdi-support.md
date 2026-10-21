@@ -10,8 +10,9 @@ ones. This note tests why. In short:
    splits into two groups that the Fourier error cannot tell apart, and the lowest-error run comes
    from either. Picking the run the others agree with fixes this (QoraPhase#20).
 3. A lower shrinkwrap threshold (0.2 instead of 0.3) halves the phase error at strain 0 to 1.2 rad
-   with 1e5 photons or more. It does not help at 1e4 photons or at 3.0 rad. That is not enough
-   to change the default; see the end of this note.
+   with 1e5 photons or more. It does not help at 1e4 photons or at 3.0 rad. On QoraPhase's own
+   sharp test objects it stops converging altogether (section 4). A schedule that loosens only
+   in the last two rounds keeps both; it is being surveyed (F13e), and the default is unchanged.
 
 ## Data and method
 
@@ -131,6 +132,40 @@ and one 128-pixel grid, and the gain is absent at 1e4 photons and at 3.0 rad. Th
 default was chosen on QoraPhase's own synthetic set (see `Shrinkwrap`). Changing it should wait
 for the full benchmark grid (three shapes, two sizes) and a rerun of QoraPhase's shrinkwrap tests
 at 0.2 / sigma 1.
+
+## 4. The threshold on QoraPhase's own data, and a schedule
+
+The rerun of QoraPhase's tests rules out 0.2 as a plain default. With the `Shrinkwrap` default
+set to 0.2, 2 of 206 tests fail.
+`test_shrinkwrap_settings_matter_more_than_detwin_placement` only pins the default value.
+`test_the_default_recipe_finds_the_object_without_a_support` fails for real. Counted directly on
+its data (`make_data` from `tests/conftest.py`, default recipe with the shrinkwrap replaced,
+autocorrelation support, 32 starts, seed 0; "converged" means Fourier error < 1e-4):
+
+| shrinkwrap in the 8 rounds | 32^2, m 10, data seed 3 | 64^2, m 12, data seed 1 |
+|---|---:|---:|
+| 0.3 / sigma 1 (default) | 9 of 32 | 14 of 32 |
+| 0.2 / sigma 1 | 0 of 32 (best error 2.2e-2) | 0 of 32 (best error 2.4e-2) |
+| 0.25 / sigma 1 | 0 of 32 | 5 of 32 |
+| 6 rounds at 0.3, then 2 at 0.2 | 9 of 32 | 14 of 32 |
+
+These objects have sharp edges, unlike the band-limited BCDI truth. A threshold low enough for
+the BCDI object keeps the support too loose to converge here.
+
+The schedule in the last row does the shrinking at 0.3 and loosens only at the end, once the
+iterate has converged. On the BCDI quick grid it matches 0.2 (phase RMSE in rad, mean over 3
+seeds of the lowest-error run of 4 starts):
+
+| case | 0.3 / sigma 1 | 0.2 / sigma 1 | schedule |
+|---|---:|---:|---:|
+| strain 0, noiseless | 0.055 | 0.017 | 0.016 |
+| strain 1.2, noiseless | 0.127 | 0.080 | 0.076 |
+| strain 1.2, 1e5 | 0.133 | 0.076 | 0.072 |
+
+Its final support (about 585 voxels) and Fourier error (0.042 noiseless) are those of 0.2. The
+survey of all shapes, sizes, strains and doses of the benchmark at the quick resolution, default
+against schedule, is running as F13e. It will be reported separately, and the default is not
+changed here.
 
 ## Not covered
 
