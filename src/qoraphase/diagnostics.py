@@ -142,7 +142,14 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
     if intensity.ndim not in (2, 3):
         raise ValueError(f"intensity must be 2D or 3D, got ndim={intensity.ndim}")
 
-    finite = np.nan_to_num(intensity.astype(float))
+    bad = np.zeros(intensity.shape, bool) if mask is None else np.asarray(mask, bool)
+    if bad.shape != intensity.shape:
+        raise ValueError(f"mask has shape {bad.shape}, intensity {intensity.shape}")
+    usable = intensity[~bad]
+
+    # masked pixels carry no measurement: a hot pixel under the mask must not
+    # set the peak, and a masked negative or NaN is not a problem with the data
+    finite = np.where(bad, 0.0, np.nan_to_num(intensity.astype(float)))
     peak = peak_offset(finite)
     friedel = friedel_offset(finite)
     fills = autocorrelation_fill(finite, threshold)
@@ -156,7 +163,8 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
         support = autocorrelation > threshold * autocorrelation.max()
     support = np.asarray(support, bool)
 
-    positive = finite[finite > 0]
+    positive = usable[usable > 0]
+    negative_fraction = float(np.mean(usable < 0)) if usable.size else 0.0
     warnings = []
     if any(peak) or any(friedel):
         warnings.append(
@@ -171,13 +179,21 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
             "oversampling figure is an upper bound and the measurement may be "
             "undersampled"
         )
-    if np.mean(intensity < 0) > MAX_NEGATIVE_FRACTION:
+    if negative_fraction > MAX_NEGATIVE_FRACTION:
         warnings.append(
-            f"{np.mean(intensity < 0):.1%} of pixels are negative and will be "
+            f"{negative_fraction:.1%} of unmasked pixels are negative and will be "
             "clipped to zero; consider masking them instead"
         )
-    if not np.all(np.isfinite(intensity)):
-        warnings.append("intensity contains NaN or Inf; mask those pixels")
+    if not np.all(np.isfinite(usable)):
+        warnings.append(
+            "intensity contains NaN or Inf; mask those pixels and set them to a "
+            "finite value such as 0"
+        )
+    if not np.all(np.isfinite(intensity[bad])):
+        warnings.append(
+            "masked pixels contain NaN or Inf; CDI refuses these even under the "
+            "mask, so set them to a finite value such as 0"
+        )
     if support.mean() > LOOSE_SUPPORT_FRACTION:
         warnings.append(
             f"support fills {support.mean():.0%} of the array and barely "
@@ -192,8 +208,8 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
         autocorrelation_fill=fills,
         oversampling=ratios,
         total_oversampling=total,
-        negative_fraction=float(np.mean(intensity < 0)),
-        masked_fraction=0.0 if mask is None else float(np.mean(np.asarray(mask, bool))),
+        negative_fraction=negative_fraction,
+        masked_fraction=float(bad.mean()),
         support_fraction=float(support.mean()),
         dynamic_range=float(positive.max() / positive.min()) if positive.size else 0.0,
         warnings=tuple(warnings),
