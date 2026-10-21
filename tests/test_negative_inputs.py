@@ -78,7 +78,7 @@ def test_the_correct_mask_raises_nothing(pattern):
 
 def test_padding_with_masked_zeros_is_not_called_inverted(pattern):
     """BCDI padding: half the frames are filler, masked, and hold no counts."""
-    support, intensity, beamstop = pattern
+    _, intensity, beamstop = pattern
     padded = np.concatenate([intensity, np.zeros_like(intensity)], axis=0)
     mask = np.concatenate([beamstop, np.ones_like(beamstop)], axis=0)
     assert mask.mean() > 0.5
