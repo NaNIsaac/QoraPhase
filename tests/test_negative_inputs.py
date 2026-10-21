@@ -45,7 +45,7 @@ def test_a_transposed_pattern_is_rejected_against_its_mask(pattern):
 
 
 def test_diagnose_flags_a_corner_origin_pattern(pattern):
-    _, intensity, beamstop = pattern
+    _, intensity, _ = pattern
     corner = np.fft.ifftshift(intensity)
     assert any("off centre" in w for w in qp.diagnose(corner).warnings)
 
