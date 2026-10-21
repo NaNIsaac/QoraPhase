@@ -24,15 +24,42 @@ MAX_NEGATIVE_FRACTION = 0.01
 #: An autocorrelation support this large is barely a constraint.
 LOOSE_SUPPORT_FRACTION = 0.5
 
-#: A mask that marks more than this fraction as unusable is more likely inverted
-#: (True meaning "keep") than a real detector with that much masked.
+#: Above this masked fraction a mask is suspicious; it is flagged as inverted only
+#: if it also covers most of the counts (padding and module gaps cover zeros).
 MAX_MASKED_FRACTION = 0.5
+
+
+def looks_inverted(intensity: np.ndarray, mask: np.ndarray) -> bool:
+    """True when the mask covers most pixels *and* most of the counts.
+
+    A real mask covers zeros (module gaps, padded frames) or a few saturated pixels; a mask with
+    its polarity inverted covers the pattern itself.
+    """
+    if mask.mean() <= MAX_MASKED_FRACTION:
+        return False
+    counts = np.nan_to_num(np.asarray(intensity, float)).clip(0)
+    return float(counts[mask].sum()) > float(counts[~mask].sum())
+
+
+def robust_peak_offset(intensity: np.ndarray) -> tuple:
+    """Like :func:`peak_offset`, after capping every pixel at its brightest face neighbour.
+
+    An isolated hot pixel or zinger then drops to the level around it, so it cannot decide where
+    the pattern sits; a real peak, whose neighbours are bright too, barely moves. Two adjacent hot
+    pixels still count as a peak.
+    """
+    data = np.nan_to_num(np.asarray(intensity, float))
+    neighbours = np.full(data.shape, -np.inf)
+    for axis in range(data.ndim):
+        for step in (-1, 1):
+            neighbours = np.maximum(neighbours, np.roll(data, step, axis))
+    return peak_offset(np.minimum(data, neighbours))
 
 
 def inverted_mask_message(masked_fraction: float) -> str:
     return (
-        f"the mask marks {masked_fraction:.0%} of pixels as unusable; mask=True means "
-        "unusable, so check that its polarity is not inverted"
+        f"the mask marks {masked_fraction:.0%} of pixels as unusable, and they hold most of the "
+        "counts; mask=True means unusable, so check that its polarity is not inverted"
     )
 
 
@@ -203,7 +230,7 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
             "masked pixels contain NaN or Inf; CDI refuses these even under the "
             "mask, so set them to a finite value such as 0"
         )
-    if bad.mean() > MAX_MASKED_FRACTION:
+    if looks_inverted(intensity, bad):
         warnings.append(inverted_mask_message(float(bad.mean())))
     if support.mean() > LOOSE_SUPPORT_FRACTION:
         warnings.append(

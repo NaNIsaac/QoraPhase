@@ -74,3 +74,24 @@ def test_the_correct_mask_raises_nothing(pattern):
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         qp.CDI(intensity, support=support, mask=beamstop)
+
+
+def test_padding_with_masked_zeros_is_not_called_inverted(pattern):
+    """BCDI padding: half the frames are filler, masked, and hold no counts."""
+    support, intensity, beamstop = pattern
+    padded = np.concatenate([intensity, np.zeros_like(intensity)], axis=0)
+    mask = np.concatenate([beamstop, np.ones_like(beamstop)], axis=0)
+    assert mask.mean() > 0.5
+    assert not any("polarity" in w for w in qp.diagnose(padded, mask=mask).warnings)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        qp.CDI(padded, mask=mask)
+
+
+def test_a_hot_pixel_in_the_corner_is_not_called_a_corner_origin(pattern):
+    support, intensity, beamstop = pattern
+    hot = intensity.copy()
+    hot[0, 0] = 5 * intensity.max()  # a zinger, five times the Bragg peak
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        qp.CDI(hot, support=support, mask=beamstop)
