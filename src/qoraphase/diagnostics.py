@@ -24,6 +24,17 @@ MAX_NEGATIVE_FRACTION = 0.01
 #: An autocorrelation support this large is barely a constraint.
 LOOSE_SUPPORT_FRACTION = 0.5
 
+#: A mask that marks more than this fraction as unusable is more likely inverted
+#: (True meaning "keep") than a real detector with that much masked.
+MAX_MASKED_FRACTION = 0.5
+
+
+def inverted_mask_message(masked_fraction: float) -> str:
+    return (
+        f"the mask marks {masked_fraction:.0%} of pixels as unusable; mask=True means "
+        "unusable, so check that its polarity is not inverted"
+    )
+
 
 def flip_about_origin(a: np.ndarray) -> np.ndarray:
     """Reflect ``r -> -r`` for a center-origin array."""
@@ -192,6 +203,8 @@ def diagnose(intensity, mask=None, support=None, threshold: float = 0.1) -> Diag
             "masked pixels contain NaN or Inf; CDI refuses these even under the "
             "mask, so set them to a finite value such as 0"
         )
+    if bad.mean() > MAX_MASKED_FRACTION:
+        warnings.append(inverted_mask_message(float(bad.mean())))
     if support.mean() > LOOSE_SUPPORT_FRACTION:
         warnings.append(
             f"support fills {support.mean():.0%} of the array and barely "

@@ -8,6 +8,8 @@ import warnings
 
 import numpy as np
 
+from ..diagnostics import MAX_MASKED_FRACTION, inverted_mask_message, peak_offset
+
 NEGATIVE_WARN_FRACTION = 0.01
 
 
@@ -23,6 +25,21 @@ def check_inputs(intensity, support, mask) -> None:
 
     if mask is not None and bool(np.all(mask)):
         raise ValueError("mask marks every pixel as bad; nothing left to fit")
+
+    masked = 0.0 if mask is None else float(np.mean(mask))
+    if masked > MAX_MASKED_FRACTION:
+        warnings.warn(inverted_mask_message(masked), stacklevel=3)
+    else:
+        # Only a gross offset: a corner origin (ifftshifted pattern) puts the peak n/2 away.
+        usable = intensity if mask is None else np.where(mask, 0.0, intensity)
+        offset = peak_offset(usable)
+        if any(abs(o) > n // 4 for o, n in zip(offset, intensity.shape, strict=True)):
+            warnings.warn(
+                f"the brightest pixel is {offset} pixels from the array centre; QoraPhase "
+                "expects the origin at index n//2, so do not ifftshift the pattern "
+                "(qp.diagnose gives details)",
+                stacklevel=3,
+            )
 
     negative = float(np.mean(intensity < 0))
     if negative > NEGATIVE_WARN_FRACTION:

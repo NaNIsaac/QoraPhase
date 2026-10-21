@@ -2,8 +2,7 @@
 
 Covers the mistakes the README warns about: a mask or support with its axes swapped, a mask with
 inverted polarity (True must mean unusable), and a pattern with the origin in the corner instead
-of at index n // 2. Cases the code does not catch yet are strict xfails tied to QoraPhase#16, so a
-fix turns them into failures that prompt removing the marker.
+of at index n // 2. The inverted mask and the corner origin used to pass silently (QoraPhase#16).
 """
 
 import warnings
@@ -51,7 +50,6 @@ def test_diagnose_flags_a_corner_origin_pattern(pattern):
     assert any("off centre" in w for w in qp.diagnose(corner).warnings)
 
 
-@pytest.mark.xfail(strict=True, reason="QoraPhase#16: no warning about an inverted mask")
 def test_diagnose_names_an_inverted_mask(pattern):
     _, intensity, beamstop = pattern
     report = qp.diagnose(intensity, mask=~beamstop)
@@ -59,14 +57,12 @@ def test_diagnose_names_an_inverted_mask(pattern):
     assert any("mask" in w for w in report.warnings)
 
 
-@pytest.mark.xfail(strict=True, reason="QoraPhase#16: CDI accepts an inverted mask silently")
 def test_cdi_warns_about_an_inverted_mask(pattern):
     _, intensity, beamstop = pattern
     with pytest.warns(UserWarning, match="mask"):
         qp.CDI(intensity, mask=~beamstop)
 
 
-@pytest.mark.xfail(strict=True, reason="QoraPhase#16: CDI accepts a corner-origin pattern silently")
 def test_cdi_warns_about_a_corner_origin_pattern(pattern):
     _, intensity, beamstop = pattern
     with pytest.warns(UserWarning, match="centre"):
