@@ -163,6 +163,10 @@ On a 48×48 test object whose pattern was blurred by a Gaussian kernel of
 | coherent, `RAAR(300) + ER(200)` | 0.0645 | 0.893 |
 | `partial_coherence`, as above | 0.0145 | 0.997 |
 
+Measured on Windows (CPU). The iteration is sensitive to floating-point
+rounding, so the numbers move between platforms: the same test on Linux CI
+gives 0.0644 and 0.0217.
+
 ## Phase constraint
 
 `qp.phase_limit(low, high, *stages)` runs every algorithm inside it with the
