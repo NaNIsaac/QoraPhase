@@ -54,9 +54,22 @@ kernel list per iteration, whether XLA fuses the elementwise work around cuFFT, 
 achieved bandwidth against the card's peak, and launch overhead. This needs JAX on CUDA
 (DotFiles#23).
 
-What exists instead is timing evidence on CPU (section 2). The cost of the shifts was inferred
-from timing `forward + adjoint` against the bare transforms, not read from a profile. Whether
-XLA materialised the shifted copies was never checked in the compiled HLO.
+What exists instead is timing evidence on CPU (section 2) and the compiled CPU program.
+`benchmarks/hlo.py` (#6) reads the top-level instructions of the optimized XLA program for
+`adjoint(forward(x))`; each one writes its result, so they count passes over the data outside
+the two FFTs (JAX 0.11.1, CPU, complex64; no timing, so machine load does not enter):
+
+| shape | shifted (#6) | phase ramp (#15) | bare fftn+ifftn |
+|---|---:|---:|---:|
+| 256^2, 1024^2 | 8 | 3 | 2 |
+| 64^3, 128^3, 65x64x63 | 12 | 3 | 2 |
+
+XLA does not fuse the shifts into the FFT: each is a roll per axis, compiled to a
+slice-and-concatenate that writes the whole array. The phase-ramp form leaves one elementwise
+multiply before, between and after the transforms (the middle one merges the forward output
+ramp, the scaling and the adjoint input ramp). This confirms the mechanism section 2 inferred;
+how long the passes take is still inferred from timing, not profiled, and the GPU program is
+compiled by a different backend.
 
 ## 4. Measurement method (H2, QoraPhase#13)
 
@@ -163,7 +176,8 @@ targets, but no JAX program has run on this card. CuPy on native Windows ran one
 
 - CPU numbers come from one machine shared with other jobs. Ratios were taken in alternating
   rounds; absolute times are indicative only.
-- No profiler evidence yet; the bottleneck attribution in section 2 is from timing.
+- No profiler evidence yet. The bottleneck attribution in section 2 is from timing; the
+  compiled CPU program (section 3) shows which passes exist, not what they cost.
 - The equivalence bounds hold for short HIO/RAAR runs. Long runs are compared by where they
   converge, not step by step.
 - The BCDI findings come from one simulator and, until F13e finishes, one particle shape.
@@ -178,6 +192,9 @@ targets, but no JAX program has run on this card. CuPy on native Windows ran one
 ```console
 # baseline (F2)
 uv run python benchmarks/perf.py > perf-results.md
+# compiled program around the FFTs (section 3); the script is in #6, the #15 column
+# is the same script run with #15 checked out
+uv run python benchmarks/hlo.py
 # harness, before/after (H2)
 uv run python benchmarks/harness.py --json before.jsonl   # on the base commit
 uv run python benchmarks/harness.py --json after.jsonl    # on the change
