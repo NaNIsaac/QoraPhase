@@ -5,12 +5,13 @@ stops at a Fourier error of 0.05 on noiseless data, while the true object fits t
 2e-4, and that at strain 1.2 rad the noiseless cases had a larger phase error than the noisy
 ones. This note tests why. In short:
 
-1. The 0.05 is not stagnation. It is the floor imposed by the support the recipe ends with.
+1. The 0.05 is not stagnation. It is set by the support the recipe ends with.
 2. The "noiseless is worse" result is most likely selection luck. The phase error of single runs
    splits into two groups that the Fourier error cannot tell apart, and the lowest-error run comes
    from either. Picking the run the others agree with fixes this (QoraPhase#20).
-3. A lower shrinkwrap threshold (0.2 instead of 0.3) halves the phase error at strain 0 to 1.2 rad
-   with 1e5 photons or more. It does not help at 1e4 photons or at 3.0 rad. On QoraPhase's own
+3. A lower shrinkwrap threshold (0.2 instead of 0.3) lowers the phase error to about 0.3-0.7 of
+   the default's at strain 0 to 1.2 rad with 1e5 photons or more. It does not help consistently
+   at 1e4 photons or at all at 3.0 rad. On QoraPhase's own
    sharp test objects it stops converging altogether (section 4). A schedule that loosens only
    in the last two rounds keeps both; it is being surveyed (F13e), and the default is unchanged.
 
@@ -51,8 +52,11 @@ recipe converges to the best object its final support allows.
 
 That support is too small for this object. The truth is not compact: the q window is finite, so
 the object is band-limited and has tails over the whole array. Cutting the truth to a support
-and computing its scaled Fourier error gives the best any support-constrained reconstruction
-can reach:
+and computing its scaled Fourier error bounds the floor for that support from above, since the
+cut truth is one object inside it. The reconstructions land below the bound at similar support
+sizes: 0.051 at about 455 voxels against 0.075 for the truth's own 0.3 shrinkwrap, and 0.042 at
+about 590 voxels (section 3) against 0.053 for 0.2. Those two reconstruction errors are
+unscaled, and scaling can only lower them.
 
 | truth cut to | voxels | energy outside | Fourier error (scaled) |
 |---|---:|---:|---:|
@@ -65,8 +69,13 @@ can reach:
 | shrinkwrap(0.2, sigma 1) of its own amplitude | 582 | | 0.053 |
 | shrinkwrap(0.1, sigma 1) of its own amplitude | 760 | | 0.045 |
 
-So 2e-4 is reachable only without a support constraint, and the default recipe's 0.05 matches
-the truth cut at 5%. rocking_xrd_sim#6 now reports these support-limited floors next to 2e-4.
+So 2e-4 is reachable only with a support far larger than shrinkwrap produces. That the 5% cut
+(540 voxels) gives 0.052, close to the recipe's 0.051 at about 455 voxels, is a coincidence of
+numbers, not a match. The conclusion rests on the first table instead: started from the truth
+the recipe ends at 0.051, 2000 more ER iterations change nothing, and larger supports reach
+0.029-0.033. A direct estimate of the floor for a given support S would be ER started from the
+truth cut to S with S held fixed, as in row 4 for the autocorrelation support; it was not run
+for the shrinkwrap supports. rocking_xrd_sim#6 reports these truth-cut errors next to 2e-4.
 
 ## 2. The lowest Fourier error does not pick the best phase
 
@@ -149,27 +158,57 @@ autocorrelation support, 32 starts, seed 0; "converged" means Fourier error < 1e
 | 0.25 / sigma 1 | 0 of 32 | 5 of 32 |
 | 6 rounds at 0.3, then 2 at 0.2 | 9 of 32 | 14 of 32 |
 
-These objects have sharp edges, unlike the band-limited BCDI truth. A threshold low enough for
-the BCDI object keeps the support too loose to converge here.
+What separates the two object sets is whether some finite support is exact, not how sharp the
+edges are; physically both particles are faceted. `make_object` is exactly compact on the grid,
+zero outside a 10-12 px simplex, so a reconstruction needs a support tight enough to pin it
+down. The BCDI truth is band-limited and rings across the array, so no finite support is exact,
+and a looser one mainly gives back rim energy.
 
-The schedule in the last row does the shrinking at 0.3 and loosens only at the end, once the
-iterate has converged. On the BCDI quick grid it matches 0.2 (phase RMSE in rad, mean over 3
-seeds of the lowest-error run of 4 starts):
+Why 0.2 fails on the test objects was not measured. A likely mechanism, from an estimate that
+was not run: 1 px outside a straight edge of the test object, the sigma-1 blurred amplitude is
+about 0.25 of its maximum. Then 0.2 keeps a 1-px rim, 0.3 drops it, and 0.25 is borderline,
+which fits 0 and 5 of 32. On a 55-px triangle that rim adds about 30 px and rounds the corners,
+and the triangles are there because a centrosymmetric support lets starts stagnate in
+object/twin mixtures (see `make_object`). Two checks on the 0.2 failures would separate twin
+stagnation from plain stagnation and are not done: the final support area against the true
+55 / 78 px, and `oriented_similarity` to the object and to its twin.
+
+The schedule in the last row does the shrinking at 0.3 and loosens only after six rounds. That
+its counts equal those of 0.3 is what a fixed point predicts: for the same object a lower
+threshold gives a superset of the support, so a start that converged to the exact object under
+0.3 still satisfies both constraints after loosening and stays there. The schedule can only lose
+starts that would have converged in rounds 7-8. Only the counts were compared, not whether the
+same starts converge.
+
+On the BCDI quick grid the schedule matches 0.2. Phase RMSE in rad, mean over 3 seeds of the
+lowest-error run of 4 starts, with the mean of the per-seed median over starts in brackets:
 
 | case | 0.3 / sigma 1 | 0.2 / sigma 1 | schedule |
-|---|---:|---:|---:|
-| strain 0, noiseless | 0.055 | 0.017 | 0.016 |
-| strain 1.2, noiseless | 0.127 | 0.080 | 0.076 |
-| strain 1.2, 1e5 | 0.133 | 0.076 | 0.072 |
+|---|---|---|---|
+| strain 0, noiseless | 0.055 (0.046) | 0.017 (0.020) | 0.016 (0.019) |
+| strain 1.2, noiseless | 0.127 (0.140) | 0.080 (0.082) | 0.076 (0.076) |
+| strain 1.2, 1e5 | 0.133 (0.115) | 0.076 (0.079) | 0.072 (0.076) |
 
-Its final support (about 585 voxels) and Fourier error (0.042 noiseless) are those of 0.2. The
-survey of all shapes, sizes, strains and doses of the benchmark at the quick resolution, default
-against schedule, is running as F13e. It will be reported separately, and the default is not
-changed here.
+The lowest-error pick is blind to phase (section 2), and the differences between 0.2 and the
+schedule are well inside the gap between the two phase groups, so this shows a match, not an
+improvement; the medians, which do not depend on that pick, say the same. Its final support
+(about 585 voxels) and Fourier error (0.042 noiseless) are those of 0.2. The survey of all
+shapes, sizes, strains and doses of the benchmark at the quick resolution, default against
+schedule, is running as F13e and records the median and the consensus pick of #20 as well. It
+will be reported separately, and the default is not changed here.
 
 ## Not covered
 
 - 1e3 photons, the full grid, GPU runs.
+- Where the phase gain sits. The benchmark's phase RMSE is unweighted over truth > 30% of max,
+  and for a 9-px particle about half of that region is in the outer pixel (1 - (7/9)^3 for a
+  sphere). The 0.3 support clips exactly that rim. An interior-only score (truth > 60%) or an
+  amplitude-weighted one would show whether 0.2 and the schedule improve the bulk strain field
+  or mainly the surface.
+- Object size. Both object sets are small: the BCDI particle spans about 9 px (150 nm; 250 nm
+  in the survey is about 15 px) and the test objects 10-12 px, so a 1-px rim is a large part of
+  the object. For particles 30-60 px across the threshold probably matters much less
+  (inference).
 - Why the iterate falls into two phase groups at strain 1.2. Possibly a phase vortex or a partial
   twin; not examined.
 - Whether the consensus selector keeps working with fewer than 8 starts. The tests in #20 cover
