@@ -48,6 +48,22 @@ uv run python benchmarks/hlo.py    # compiled program around the FFTs, seconds, 
 the single run; it says the runs did something sensible, not that the recipe is tuned for
 these sizes.
 
+The table above is one run on a machine that was shared with other jobs. Two later runs of the
+same script and environment on a quiet machine (2026-10-23, no other job; load snapshots before
+each run showed nothing but System and Defender above 0.6 core) gave these warm medians:
+
+| shape | first run s | quiet runs s | quiet iterations/s |
+|---|---:|---:|---:|
+| 256x256 | 0.39 | 0.45 / 0.36 | 1600-2000 |
+| 512x512 | 1.27 | 1.19 / 1.18 | 607 |
+| 1024x1024 | 4.39 | 3.96 / 3.29 | 182-219 |
+| 32x32x32 | 0.24 | 0.20 / 0.20 | 3600 |
+| 64x64x64 | 0.87 | 0.79 / 0.73 | 910-990 |
+| 128x128x128 | 14.52 | 11.24 / 10.36 | 64-70 |
+
+The quiet RAAR step at 128^3 is 14.4 / 13.0 ms, so a recipe iteration (15.6 / 14.4 ms) now
+costs about 1.1x an isolated step, not the 1.4x of the first run (finding 5).
+
 ## Cost of the primitives inside one iteration
 
 Each row is one jitted call timed on its own (median of 10). At 64² the call is short
@@ -174,8 +190,9 @@ Each follows from the tables above; the explanations marked *hypothesis* were no
    the same process, so the per-iteration cost inside `lax.scan` is not higher than the
    isolated step there; the 1.4x gap in the first run is most likely load variation (this
    machine showed up to 2.5x between identical runs), not a per-stage overhead, but this
-   was not isolated further. Use 20 ms (end to end) for run-time estimates and 14.5 ms
-   only as the best isolated step. A 256³ step measured 202 ms, which would put the
+   was not isolated further. The quiet reruns below the end-to-end table settle it: there an
+   iteration costs about 1.1x an isolated step (15.6 against 14.4 ms). Use 15-16 ms per
+   iteration at 128^3 on a quiet machine. A 256³ step measured 202 ms, which would put the
    default recipe near 2.4 minutes per start (an extrapolation of 720 x 0.202 s, not a run).
 6. **Batching starts helps but is not free:** per-start cost falls to about half at 8
    starts (128²: 0.10 to 0.05 s; 32³: 0.21 to 0.11 s) and total time still grows with
