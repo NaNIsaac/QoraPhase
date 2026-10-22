@@ -3,7 +3,7 @@
 Draft. Sections marked **TODO (GPU)** wait for a GPU environment: JAX has no CUDA build for
 native Windows, and the WSL2 distribution that would provide one is NaNIsaac/DotFiles#23. Every
 number below was measured on CPU, except one cuFFT probe in section 8, which is not a
-performance claim. Where a number is a ratio from a loaded machine it says so. Nothing here claims
+performance claim, and the CUDA equivalence run in section 6, which is a correctness check. Where a number is a ratio from a loaded machine it says so. Nothing here claims
 a GPU result.
 
 ## 1. The physical problem
@@ -132,8 +132,11 @@ of evidence replace it.
 3. **Across implementations** (QoraPhaseCU#1, #2): QoraPhaseCU, the C++/CUDA port, now
    accepts a starting object. Its CPU backend follows QoraPhase iteration by iteration from
    shared starts on 2D and 3D, even and odd shapes, with masks, shrinkwrap and detwin (18 tests,
-   relative distance < 1e-4). Its CUDA backend joins the same tests when a device is present:
-   **TODO (GPU)**.
+   relative distance < 1e-4). Its CUDA backend runs the same tests when a device is present.
+   On the RTX 5070 (CUDA 13.4, native Windows) all 18 pass for CUDA as for CPU, both with the
+   fixed bound and with the per-case floor bound of #17, with identical supports; the C++
+   suite, where every CUDA variant is compared with the CPU backend, passes 68 of 68. This is
+   a correctness check, not a speed measurement. CI has no GPU, so it is a local result.
 
 ## 7. A correctness finding along the way: support and selection (F13d/F13e)
 
@@ -191,7 +194,8 @@ targets, but no JAX program has run on this card. CuPy on native Windows ran one
   At that size a 1-px support rim is a large part of the object (about half the voxels of a
   9-px sphere are in its outer pixel), so the shrinkwrap findings may be much weaker for
   particles 30-60 px across (inference). Photon counts below 1e4 are not covered.
-- GPU: nothing measured.
+- GPU: no speed or memory measured. The QoraPhaseCU CUDA backend was checked for correctness
+  only (section 6).
 
 ## 10. Reproduce
 
