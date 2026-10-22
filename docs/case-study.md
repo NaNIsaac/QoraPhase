@@ -154,9 +154,13 @@ data. Testing that claim turned up two things that matter more than speed
   gain is not consistent (0.8 for the lowest-error pick, 1.2 for the median over starts), and
   at 3.0 rad there is none. On QoraPhase's own synthetic objects, which are exactly compact on the grid,
   it converges in 0 of 32 starts, against 9 and 14 of 32 at 0.3. A schedule (six rounds at
-  0.3, then two at 0.2) keeps 9 and 14 of 32 there and matches 0.2 on three BCDI cases. The counts and the BCDI table are in section 4 of
-  `docs/bcdi-support.md` (#21). The survey across 3 shapes x 2 sizes x 3 strains x 3 doses
-  (F13e) is running; whether the schedule becomes the default is Isaac's decision after it.
+  0.3, then two at 0.2) keeps 9 and 14 of 32 there and matches 0.2 on three BCDI cases.
+- **The survey reverses the threshold result.** Across 3 shapes x 2 sizes x 3 strains x 3 doses
+  (F13e, 54 cells, 3 seeds x 4 starts), scored by a rule fixed before the data were read, the
+  schedule's median phase error is worse than the default's in 19 cells, mostly at strain 0,
+  250 nm and 1e4 photons. The gain above belongs to the one particle it was measured on. The
+  default stays at 0.3; the schedule is at most a recipe option. Tables in sections 4-5 of
+  `docs/bcdi-support.md` (#21).
 
 ## 8. Speed and memory against size
 
@@ -180,7 +184,9 @@ targets, but no JAX program has run on this card. CuPy on native Windows ran one
   compiled CPU program (section 3) shows which passes exist, not what they cost.
 - The equivalence bounds hold for short HIO/RAAR runs. Long runs are compared by where they
   converge, not step by step.
-- The BCDI findings come from one simulator and, until F13e finishes, one particle shape.
+- The BCDI findings come from one simulator. The selection result (consensus pick) was measured
+  on one particle shape; the threshold result was tested on three shapes and two sizes and held
+  for only one of them.
 - Object size. The simulated particle spans about 9 px and the synthetic test objects 10-12 px.
   At that size a 1-px support rim is a large part of the object (about half the voxels of a
   9-px sphere are in its outer pixel), so the shrinkwrap findings may be much weaker for
