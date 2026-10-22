@@ -11,8 +11,10 @@ a GPU result.
 Coherent diffraction imaging measures the far-field intensity `I(q) = |F[rho](q)|^2` of a
 compact object `rho` and recovers `rho`, phase included, by iterating between two constraints:
 the measured Fourier magnitude and a real-space support. In Bragg CDI (BCDI) the object is a
-crystal grain, the data are a 3D rocking-curve stack, and the recovered phase is the lattice
-displacement projected on the scattering vector, which is what makes strain visible.
+crystal grain, the data are a 3D rocking-curve stack, and the recovered phase is `Q·u(r)`:
+`|Q|` times the component of the lattice displacement `u` along the scattering vector, with the
+sign set by the FFT convention. The strain component along `Q` is `(1/|Q|) dphi/dx_Q`, which is
+what makes strain visible.
 
 QoraPhase implements the iterations (ER, HIO, RAAR, shrinkwrap, detwinning, multi-start under
 `vmap`) in JAX. A typical run is 720 iterations of the default recipe per start, several starts,
@@ -109,10 +111,11 @@ of evidence replace it.
    implementation of ER, HIO, RAAR, shrinkwrap and detwin runs from the same start. The
    tolerance for each case is measured rather than chosen: it is the distance between the
    complex64 and complex128 runs of the reference itself, and a backend passes within 10x that
-   floor. The same measurement showed why tolerances have to be measured. HIO and RAAR amplify
-   a 1e-7 rounding difference to 1e-2-1e-1 within 50 iterations, for any pair of correct
-   single-precision implementations, so step-by-step comparison is only meaningful over a few
-   iterations. ER is not chaotic and stays within the floor for 200.
+   floor. The same measurement showed why tolerances have to be measured. HIO and RAAR amplified
+   a 1e-7 rounding difference to 1e-2-1e-1 within 50 iterations for every pair measured, which
+   is expected since on non-convex constraint sets they are not contractions. Step-by-step
+   comparison is therefore only meaningful over a few iterations. ER did not amplify it over
+   200 iterations.
 3. **Across implementations** (QoraPhaseCU#1, #2): QoraPhaseCU, the C++/CUDA port, now
    accepts a starting object. Its CPU backend follows QoraPhase iteration by iteration from
    shared starts on 2D and 3D, even and odd shapes, with masks, shrinkwrap and detwin (18 tests,
@@ -126,16 +129,19 @@ data. Testing that claim turned up two things that matter more than speed
 (`docs/bcdi-support.md`, QoraPhase#21):
 
 - **No stagnation.** Started from the true object, the default recipe ends at the same Fourier
-  error (0.051) as random starts. The floor is set by the final shrinkwrap support: the
-  band-limited true object cut to 5% of its maximum fits only to 0.052.
+  error (0.051) as random starts, and 2000 more ER iterations change nothing. The floor is set
+  by the final shrinkwrap support; larger supports reach 0.029-0.033.
 - **Selecting by Fourier error is blind to phase.** At strain 1.2 rad the per-start phase error
-  splits into two groups (about 0.08 and 0.2 rad) whose Fourier errors differ by about 1e-3.
+  splits into two groups (about 0.08 and 0.2 rad) whose Fourier errors overlap within 1e-3.
   Averaging all runs aligned onto the run the others agree with (QoraPhase#20) never did worse
-  than the old average in 10 case/seed pairs, and removed all three bad picks (0.18 to 0.07 rad).
-- **Shrinkwrap threshold.** A looser threshold (0.2) halves the BCDI phase error, but on
-  QoraPhase's own sharp synthetic objects it converges in 0 of 32 starts, against 9 and 14 of
-  32 at 0.3. A schedule (six rounds at 0.3, then two at 0.2) keeps 9 and 14 of 32 there and
-  matches 0.2 on three BCDI cases. The counts and the BCDI table are in section 4 of
+  than the old average in 10 case/seed pairs, and removed all three bad picks (0.18 to
+  0.07-0.08 rad).
+- **Shrinkwrap threshold.** A looser threshold (0.2) cuts the BCDI phase error to about
+  0.3-0.7 of the default's at strain 0-1.2 rad with 1e5 photons or more. At 1e4 photons the
+  gain is not consistent (0.8 for the lowest-error pick, 1.2 for the median over starts), and
+  at 3.0 rad there is none. On QoraPhase's own synthetic objects, which are exactly compact on the grid,
+  it converges in 0 of 32 starts, against 9 and 14 of 32 at 0.3. A schedule (six rounds at
+  0.3, then two at 0.2) keeps 9 and 14 of 32 there and matches 0.2 on three BCDI cases. The counts and the BCDI table are in section 4 of
   `docs/bcdi-support.md` (#21). The survey across 3 shapes x 2 sizes x 3 strains x 3 doses
   (F13e) is running; whether the schedule becomes the default is Isaac's decision after it.
 
@@ -161,6 +167,10 @@ targets, but no JAX program has run on this card. CuPy on native Windows ran one
 - The equivalence bounds hold for short HIO/RAAR runs. Long runs are compared by where they
   converge, not step by step.
 - The BCDI findings come from one simulator and, until F13e finishes, one particle shape.
+- Object size. The simulated particle spans about 9 px and the synthetic test objects 10-12 px.
+  At that size a 1-px support rim is a large part of the object (about half the voxels of a
+  9-px sphere are in its outer pixel), so the shrinkwrap findings may be much weaker for
+  particles 30-60 px across (inference). Photon counts below 1e4 are not covered.
 - GPU: nothing measured.
 
 ## 10. Reproduce
