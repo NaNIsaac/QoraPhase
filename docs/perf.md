@@ -210,3 +210,79 @@ projection, Shrinkwrap.
   (finding 2). This changes layout handling in `FFT` and `CDI`; it needs a test that the
   output is unchanged.
 - Report the above again on a GPU machine before drawing any conclusion about kernels.
+
+## Benchmark harness
+
+`benchmarks/harness.py` times single algorithms on any JAX device and keeps the raw numbers
+for comparing two versions of the code:
+
+```bash
+uv run python benchmarks/harness.py --json before.jsonl          # on the old commit
+uv run python benchmarks/harness.py --json after.jsonl           # on the new commit
+uv run python benchmarks/harness.py --compare before.jsonl after.jsonl
+```
+
+Per case (algorithm x shape) it compiles once with `jax.jit(...).lower(...).compile()` and
+reports that time separately, runs `--warmup` untimed calls, then `--repeat` timed calls,
+each ending in `block_until_ready`. It prints the median with quartiles and min-max, the time
+per iteration and the throughput in voxel-iterations per second. Peak device memory comes from
+`memory_stats()`; the CPU backend does not report it, and JAX keeps a single peak per process,
+so a per-case peak on a GPU needs one case per process. The only clock is the wall time after
+`block_until_ready`; there is no separate device-side timer.
+
+### One run on this machine
+
+Same machine as above (JAX 0.11.1, CPU device, float32/complex64), 50 iterations per call,
+2 warm-up and 10 timed calls:
+
+| algorithm | shape | iterations | compile s | median s | quartiles s | min-max s | ms/iteration | Mvoxel-it/s | peak device MiB so far |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| RAAR | 128x128 | 50 | 0.08 | 0.0079 | 0.0073-0.0080 | 0.0061-0.0082 | 0.158 | 103.8 | not reported by device |
+| HIO | 128x128 | 50 | 0.09 | 0.0079 | 0.0077-0.0079 | 0.0077-0.0083 | 0.157 | 104.3 | not reported by device |
+| ER | 128x128 | 50 | 0.08 | 0.0056 | 0.0053-0.0058 | 0.0052-0.0060 | 0.112 | 146.8 | not reported by device |
+| RAAR | 512x512 | 50 | 0.08 | 0.0549 | 0.0543-0.0558 | 0.0534-0.0591 | 1.098 | 238.6 | not reported by device |
+| HIO | 512x512 | 50 | 0.09 | 0.0578 | 0.0564-0.0586 | 0.0546-0.0621 | 1.157 | 226.6 | not reported by device |
+| ER | 512x512 | 50 | 0.09 | 0.0534 | 0.0514-0.0552 | 0.0499-0.0560 | 1.067 | 245.6 | not reported by device |
+| RAAR | 1024x1024 | 50 | 0.10 | 0.1747 | 0.1730-0.1923 | 0.1718-0.2300 | 3.493 | 300.2 | not reported by device |
+| HIO | 1024x1024 | 50 | 0.14 | 0.1820 | 0.1753-0.1884 | 0.1714-0.1971 | 3.639 | 288.1 | not reported by device |
+| ER | 1024x1024 | 50 | 0.10 | 0.1998 | 0.1882-0.2109 | 0.1799-0.2266 | 3.996 | 262.4 | not reported by device |
+| RAAR | 64x64x64 | 50 | 0.33 | 0.0601 | 0.0572-0.0620 | 0.0560-0.0647 | 1.202 | 218.2 | not reported by device |
+| HIO | 64x64x64 | 50 | 0.35 | 0.0567 | 0.0560-0.0581 | 0.0553-0.0591 | 1.134 | 231.1 | not reported by device |
+| ER | 64x64x64 | 50 | 0.36 | 0.0575 | 0.0541-0.0583 | 0.0512-0.0608 | 1.151 | 227.8 | not reported by device |
+| RAAR | 128x128x128 | 50 | 0.19 | 0.7923 | 0.7765-0.8125 | 0.7345-0.9350 | 15.846 | 132.3 | not reported by device |
+| HIO | 128x128x128 | 50 | 0.17 | 0.7491 | 0.7321-0.7599 | 0.6893-0.7975 | 14.983 | 140.0 | not reported by device |
+| ER | 128x128x128 | 50 | 0.19 | 0.7682 | 0.7520-0.7896 | 0.7343-0.8870 | 15.364 | 136.5 | not reported by device |
+
+### Run-to-run noise: the same code twice
+
+The same command run twice in a row, minutes apart, on the same commit:
+
+| algorithm | shape | run 1 median s | run 2 median s | run 2 / run 1 | spread run 1 | spread run 2 | ranges overlap |
+|---|---|---:|---:|---:|---:|---:|---|
+| ER | 1024x1024 | 0.1998 | 0.2316 | 1.159 | 0.1799-0.2266 | 0.2147-0.2891 | yes |
+| ER | 128x128 | 0.0056 | 0.0078 | 1.399 | 0.0052-0.0060 | 0.0058-0.0080 | yes |
+| ER | 128x128x128 | 0.7682 | 1.9397 | 2.525 | 0.7343-0.8870 | 1.6037-2.0245 | no |
+| ER | 512x512 | 0.0534 | 0.0662 | 1.241 | 0.0499-0.0560 | 0.0632-0.0731 | no |
+| ER | 64x64x64 | 0.0575 | 0.0557 | 0.969 | 0.0512-0.0608 | 0.0533-0.0573 | yes |
+| HIO | 1024x1024 | 0.1820 | 0.2169 | 1.192 | 0.1714-0.1971 | 0.1920-0.2421 | yes |
+| HIO | 128x128 | 0.0079 | 0.0075 | 0.960 | 0.0077-0.0083 | 0.0057-0.0080 | yes |
+| HIO | 128x128x128 | 0.7491 | 0.7952 | 1.061 | 0.6893-0.7975 | 0.7047-0.8789 | yes |
+| HIO | 512x512 | 0.0578 | 0.0706 | 1.220 | 0.0546-0.0621 | 0.0681-0.0817 | no |
+| HIO | 64x64x64 | 0.0567 | 0.0580 | 1.023 | 0.0553-0.0591 | 0.0571-0.0612 | yes |
+| RAAR | 1024x1024 | 0.1747 | 0.2129 | 1.219 | 0.1718-0.2300 | 0.1946-0.2523 | yes |
+| RAAR | 128x128 | 0.0079 | 0.0065 | 0.827 | 0.0061-0.0082 | 0.0055-0.0077 | yes |
+| RAAR | 128x128x128 | 0.7923 | 0.7436 | 0.939 | 0.7345-0.9350 | 0.7053-0.8168 | yes |
+| RAAR | 512x512 | 0.0549 | 0.0832 | 1.515 | 0.0534-0.0591 | 0.0770-0.0891 | no |
+| RAAR | 64x64x64 | 0.0601 | 0.0596 | 0.992 | 0.0560-0.0647 | 0.0567-0.0643 | yes |
+
+The two runs of identical code differ by up to 2.5x (ER at 128x128x128), and in four cases the
+min-max ranges do not even overlap. Other jobs were running on the machine at the time (CI
+builds, tests and other agents), so this measures that machine as it was, not the code. Two
+consequences for using the harness:
+
+- A before/after difference smaller than the spread between two identical runs on the same
+  machine says nothing. Run the same command twice first to see how large that is.
+- Compare on a quiet machine, and alternate the two versions in several rounds
+  (before, after, before, after) rather than running all of one and then all of the other, so
+  a change in machine load hits both. The `ranges overlap` column of `--compare` is a
+  first check, not a significance test.
