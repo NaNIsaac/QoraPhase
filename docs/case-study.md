@@ -42,10 +42,10 @@ What the baseline showed:
 - Compilation is a constant 0.5-1.7 s per new shape and matters only for small problems.
 - Batching starts halves the per-start cost at 8 starts.
 
-Caveat: at 128^3 the end-to-end run averages 20.2 ms per iteration, against 14.5 ms for an
-isolated step measured in another part of the same run. A rerun under load showed no
-per-iteration overhead inside `lax.scan`, so the gap is most likely load variation. This is
-noted in `docs/perf.md` and was not isolated further.
+Caveat: these are from one run on a shared machine. At 128^3 that run averaged 20.2 ms per
+iteration against 14.5 ms for an isolated step. Two quiet-machine runs (2026-10-23, no other job)
+gave 10.4-11.2 s end to end at 128^3, 15.6 / 14.4 ms per iteration against a 14.4 / 13.0 ms
+step, so the gap was load; 1024^2 took 3.3-4.0 s. The quiet numbers are in `docs/perf.md`.
 
 ## 3. Profiler evidence
 
@@ -108,8 +108,12 @@ was faster in 39 of 40 per-round comparisons:
 | default recipe end to end, 256^2 / 64^3 | 1.23 / 1.31 |
 
 These are ratios from a loaded machine (the spread of identical base runs was 3-99% per case),
-not absolute speeds. A quiet-machine rerun with `harness.py --compare` is still to do. Whether
-the speedup carries over to a GPU, where cuFFT and XLA fusion behave differently, is **TODO (GPU)**.
+not absolute speeds. A quiet-machine rerun (`perf.py`, base new new base, 2026-10-23) gives
+1.2x to 2.1x wherever the gain exceeds the base spread: forward+adjoint 1.49 / 1.23 / 1.53 /
+2.08 / 2.02 at 256^2 / 1024^2 / 64^3 / 128^3 / 256^3, and end to end 1.17 at 512^2, 1.47 at
+1024^2, 1.32 at 64^3 and 1.99 at 128^3. The bare FFTs did not change, so the gain is the removed
+copies (`docs/perf-fft-shift.md`, #15). Whether the speedup carries over to a GPU, where cuFFT
+and XLA fusion behave differently, is **TODO (GPU)**.
 
 ## 6. Correctness: the same answers
 
@@ -181,8 +185,9 @@ targets, but no JAX program has run on this card. CuPy on native Windows ran one
 
 ## 9. Limits
 
-- CPU numbers come from one machine shared with other jobs. Ratios were taken in alternating
-  rounds; absolute times are indicative only.
+- CPU numbers come from one machine. The first baseline and the first A/B were taken while
+  other jobs ran; both were repeated on the quiet machine, and the quiet values are the ones to
+  quote. All CPU runs used JAX 0.11.1.
 - No profiler evidence yet. The bottleneck attribution in section 2 is from timing; the
   compiled CPU program (section 3) shows which passes exist, not what they cost.
 - The equivalence bounds hold for short HIO/RAAR runs. Long runs are compared by where they
