@@ -18,8 +18,9 @@ The adjoint uses the conjugate ramps. Odd lengths use complex ramps and are cove
 tests. The public convention is unchanged: arrays are center-origin, index `n // 2` is the
 origin, `norm="ortho"`.
 
-Whether XLA really removes the copies was not inspected in the compiled program; what is
-measured below is only the wall time.
+The compiled CPU program confirms it (`benchmarks/hlo.py` in #6, JAX 0.11.1): outside the two
+FFTs, `forward` + `adjoint` writes 12 arrays in 3D and 8 in 2D with the shifts, and 3 with the
+ramps, against 2 for the bare transforms.
 
 ## Output equality
 
@@ -65,10 +66,40 @@ that were run. The 256^2 numbers are the least certain: at 0.4 to 1.2 ms per cal
 and scheduling noise is the same size as the effect (base spread 61-99%), and the 2.0x and
 3.0x step ratios there should be read as "clearly faster", not as a measured factor.
 
+## Quiet-machine rerun
+
+2026-10-23, `benchmarks/perf.py` (#6) run four times in the order base, new, new, base, with no
+other job on the machine (load snapshots before each run showed nothing but System and Defender
+above 0.6 core). Same JAX 0.11.1, NumPy 2.5.2, Python 3.14.5 for both. Each cell is the mean of
+the two runs of a variant; "base spread" is the difference between the two base runs over their
+mean.
+
+| case | base | new | base / new | base spread |
+|---|---:|---:|---:|---:|
+| 256x256 forward+adjoint, ms | 0.96 | 0.64 | 1.49 | 11% |
+| 256x256 RAAR step, ms | 1.01 | 0.75 | 1.34 | 9% |
+| 1024x1024 forward+adjoint, ms | 3.99 | 3.24 | 1.23 | 2% |
+| 1024x1024 RAAR step, ms | 5.47 | 4.67 | 1.17 | 9% |
+| 64^3 forward+adjoint, ms | 1.46 | 0.95 | 1.53 | 5% |
+| 64^3 RAAR step, ms | 1.53 | 1.19 | 1.29 | 4% |
+| 128^3 forward+adjoint, ms | 12.8 | 6.2 | 2.08 | 29% |
+| 128^3 RAAR step, ms | 13.7 | 10.3 | 1.33 | 10% |
+| 256^3 forward+adjoint, ms | 172 | 85 | 2.02 | 9% |
+| 256^3 RAAR step, ms | 192 | 105 | 1.83 | 6% |
+| `reconstruct` 512x512, s | 1.19 | 1.01 | 1.17 | 1% |
+| `reconstruct` 1024x1024, s | 3.63 | 2.47 | 1.47 | 18% |
+| `reconstruct` 64^3, s | 0.76 | 0.58 | 1.32 | 8% |
+| `reconstruct` 128^3, s | 10.80 | 5.44 | 1.99 | 8% |
+
+On the quiet machine the new form is faster in every case where the gain exceeds the base
+spread, by 1.2x to 2.1x, and the gain grows with size in 3D: a whole 128^3 reconstruction takes
+half the time. The bare `fftn + ifftn` did not change (base / new 0.90 to 1.12), so the gain is
+the removed copies. At 256^2 end to end the two runs of the new form disagreed (0.29 and 0.45 s)
+and nothing is concluded there; at 128^2 and below the two forms are equal within the noise.
+
 ## Not measured
 
-- A quiet-machine rerun. `benchmarks/harness.py` (#13) can repeat this with `--compare` once
-  it is merged.
+- A rerun with `benchmarks/harness.py --compare` (#13), which reports quartiles per case.
 - Anything on a GPU. Whether XLA on CUDA fuses the ramps into the cuFFT call or around it is
   not known.
 - Memory use.
