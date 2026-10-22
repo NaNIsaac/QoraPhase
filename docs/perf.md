@@ -10,6 +10,7 @@ small sizes):
 
 ```console
 uv run python benchmarks/perf.py > perf-results.md
+uv run python benchmarks/hlo.py    # compiled program around the FFTs, seconds, no timing
 ```
 
 ## Setup
@@ -113,6 +114,25 @@ how much of it is float32 rounding was not isolated.
 | 32x32x32 | 4 | 0.55 | 0.14 |
 | 32x32x32 | 8 | 0.92 | 0.11 |
 
+## Compiled program around the FFT
+
+`benchmarks/hlo.py` compiles `FFT.adjoint(FFT.forward(x))` and the bare transforms and
+reads the top-level instructions of the optimized program (JAX 0.11.1, CPU, complex64).
+Every top-level instruction writes its result, so the last column counts passes over the
+data outside the transforms, in units of the input array. This does not depend on machine
+load and was not timed.
+
+| shape | case | FFTs | other instructions | arrays written outside the FFTs |
+|---|---|---:|---:|---:|
+| 256x256, 1024x1024 | forward+adjoint | 2 | 12 | 8 |
+| 64x64x64, 65x64x63 | forward+adjoint | 2 | 12 | 12 |
+| 128x128x128 | forward+adjoint | 2 | 16 | 12 |
+| all of the above | raw fftn+ifftn | 2 | 2 | 2 |
+
+In 2D each of the four shifts (`ifftshift` and `fftshift` around each transform) compiles to
+two half-array slices and a concatenate; in 3D to one slice-and-concatenate per axis. The
+`ortho` scaling is fused into the shifts next to it, which is the only fusion across them.
+
 ## Findings
 
 Each follows from the tables above; the explanations marked *hypothesis* were not tested.
@@ -127,9 +147,12 @@ Each follows from the tables above; the explanations marked *hypothesis* were no
    `fftshift`/`ifftshift` sandwich costs about as much as the FFTs.** At 256² and up the raw
    `fftn + ifftn` is 36-57% of a RAAR step, while `forward + adjoint` is 77-97% of it. So
    the sandwiched transform takes 1.5x to 2.4x the time of the raw one (1.6x at 256²,
-   1.6x at 1024², 1.6x at 64³, 2.1x at 128³, 2.4x at 256³). *Hypothesis:* the shifts are
-   materialized copies that are not fused into the FFT. Not checked in the compiled
-   program.
+   1.6x at 1024², 1.6x at 64³, 2.1x at 128³, 2.4x at 256³). The compiled program shows
+   why ("Compiled program around the FFT" above): the shifts are not fused into the FFT. Each shift is a roll per
+   axis, compiled to a slice-and-concatenate that writes the whole array, so one
+   `forward + adjoint` writes 8 arrays (2D) or 12 (3D) outside the two transforms, against
+   2 for the bare transforms, where only the `ortho` scaling remains. How much time those
+   passes take was inferred from the timings above, not profiled.
 3. **Compilation is a roughly constant 0.5-1.7 s per new shape and recipe**, shown by
    cold minus warm (0.53-1.71 s across all sizes), and there is no recompilation on the
    repeated calls (warm times are stable, min-max within a few percent). It dominates
@@ -173,8 +196,9 @@ projection, Shrinkwrap.
 - Any GPU: JAX GPU, peak VRAM/RAM, host-device transfer, PCIe. The numbers above say
   nothing about where a GPU run would be limited.
 - 1024² / 256³ end to end with several repeats; 256³ was timed per step only.
-- Whether XLA fuses the elementwise operations around the FFT, and the memory traffic of
-  a step. A profile of the compiled program would be needed.
+- The memory traffic and time of each instruction in a step. Which instructions XLA
+  emits around the FFT is now read from the compiled program (above); what they cost needs
+  a profiler.
 - Whether the CPU run is multi-threaded and how that scales.
 - The effect of x64, of `batch=` chunking, a partial-coherence model, masks and low-pass.
 - Phase B (a custom CUDA kernel). Nothing here shows it is warranted; the CPU profile
