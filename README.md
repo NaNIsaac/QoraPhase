@@ -75,7 +75,7 @@ composable pieces of a recipe, and multi-start runs are vectorised with `vmap`.
 |---|---|
 | **Origin** | Every public array is **center-origin**: index `n // 2` is q=0. `ifftshift` is internal; never call it yourself. |
 | **`intensity`** | A measured **intensity**, not an amplitude. Internally `sqrt(clip(intensity, 0))`. |
-| **`mask`** | `True` marks an **unusable** pixel (beamstop, hot, saturated). Masked pixels are left unconstrained — never forced to zero. NaN or Inf is refused even under the mask: set those pixels to 0. `diagnose` ignores masked pixels for the peak, negative and NaN checks. |
+| **`mask`** | `True` marks an **unusable** pixel (beamstop, hot, saturated). Masked pixels are left unconstrained — never forced to zero. NaN or Inf is refused even under the mask: set those pixels to 0. `diagnose` ignores masked pixels for the peak, negative and NaN checks (on `main`; the 0.2.0 release on PyPI still counts them). |
 | **`support`** | `True` is inside the object. Omit it and an autocorrelation support is derived (loose; pass a real one when you have it). |
 
 ## Composing a reconstruction
@@ -493,6 +493,8 @@ workflow. These runs support using it on a support with twin symmetry; they do n
 show it improves reconstructions in general.
 
 ## Low-pass resolution progression
+
+Not in the 0.2.0 release on PyPI. Until the next release, install from GitHub: `uv pip install "git+https://github.com/NaNIsaac/QoraPhase"`.
 
 `qp.low_pass(*stages, sigma=(2.0, 0.5))` runs its stages against a Gaussian-blurred
 copy of the measured amplitude, with the blur width ramping linearly from
