@@ -13,7 +13,9 @@ ones. This note tests why. In short:
    the default's at strain 0 to 1.2 rad with 1e5 photons or more. It does not help consistently
    at 1e4 photons or at all at 3.0 rad. On QoraPhase's own
    sharp test objects it stops converging altogether (section 4). A schedule that loosens only
-   in the last two rounds keeps both; it is being surveyed (F13e), and the default is unchanged.
+   in the last two rounds keeps both there, but over the benchmark's three shapes and two sizes
+   it is worse than the default in 19 of 54 cells (section 5). The default stays at 0.3; the
+   schedule is at most a recipe option.
 
 ## Data and method
 
@@ -140,7 +142,8 @@ The default stays at 0.3 / sigma 1 for now. The evidence above is one particle s
 and one 128-pixel grid, and the gain is absent at 1e4 photons and at 3.0 rad. The current
 default was chosen on QoraPhase's own synthetic set (see `Shrinkwrap`). Changing it should wait
 for the full benchmark grid (three shapes, two sizes) and a rerun of QoraPhase's shrinkwrap tests
-at 0.2 / sigma 1.
+at 0.2 / sigma 1. Both were done: the tests rule out plain 0.2 (section 4), and the
+grid rules out the schedule as a default (section 5).
 
 ## 4. The threshold on QoraPhase's own data, and a schedule
 
@@ -192,14 +195,60 @@ lowest-error run of 4 starts, with the mean of the per-seed median over starts i
 The lowest-error pick is blind to phase (section 2), and the differences between 0.2 and the
 schedule are well inside the gap between the two phase groups, so this shows a match, not an
 improvement; the medians, which do not depend on that pick, say the same. Its final support
-(about 585 voxels) and Fourier error (0.042 noiseless) are those of 0.2. The survey of all
-shapes, sizes, strains and doses of the benchmark at the quick resolution, default against
-schedule, is running as F13e and records the median and the consensus pick of #20 as well. It
-will be reported separately, and the default is not changed here.
+(about 585 voxels) and Fourier error (0.042 noiseless) are those of 0.2. These three cases are
+all from the one particle of the quick grid; section 5 tests the other shapes and sizes.
+
+## 5. The schedule across the benchmark grid (F13e)
+
+The benchmark's survey grid: asymmetric, sphere and truncated octahedron particles, 150 and
+250 nm (about 9 and 15 px), strain 0, 1.2 and 3.0 rad, noiseless, 1e5 and 1e4 photons; 54 cells,
+3 seeds x 4 starts per cell and recipe. QoraPhase at #20 (91cf87a), rocking_xrd_sim at #6
+(3d135c8), JAX 0.11.1 on CPU.
+
+The scoring rule was fixed before any phase value of the survey was read. Per seed, take the
+median phase RMSE over the 4 starts. A cell is "worse" for the schedule if the mean over seeds of
+(schedule - default) exceeds the standard deviation of the default over seeds. The schedule would
+become the default only if no cell is worse and QoraPhase's tests pass with it. As a check that
+does not depend on the spread estimate, a second column counts cells where the schedule is worse
+in all three seeds. The scoring was repeated independently from the rule alone, with no
+disagreement over 54 cells.
+
+Result: the schedule is worse in 19 of 54 cells (16 by the all-three-seeds count; the two rules
+disagree on 7 cells). The test-suite condition could not change that and was not run. The default
+stays at 0.3 / sigma 1. Cells by group, by median phase error (the last column uses the mirrored
+rule, which was not part of the registered scoring):
+
+| group | cells | worse | worse in all 3 seeds | better (unregistered) |
+|---|---:|---:|---:|---:|
+| strain 0 | 18 | 10 | 9 | 1 |
+| strain 1.2 | 18 | 4 | 2 | 3 |
+| strain 3.0 | 18 | 5 | 5 | 3 |
+| noiseless | 18 | 6 | 5 | 3 |
+| 1e5 photons | 18 | 4 | 4 | 4 |
+| 1e4 photons | 18 | 9 | 7 | 0 |
+| asymmetric, 150 nm | 9 | 1 | 1 | 2 |
+| asymmetric, 250 nm | 9 | 3 | 3 | 2 |
+| sphere, 150 nm | 9 | 4 | 2 | 1 |
+| sphere, 250 nm | 9 | 5 | 4 | 0 |
+| truncated octahedron, 150 nm | 9 | 2 | 2 | 1 |
+| truncated octahedron, 250 nm | 9 | 4 | 4 | 1 |
+
+The asymmetric 150 nm particle of sections 1-4 is the case where the schedule helps, and the
+survey reproduces that (strain 0 noiseless, median 0.065 to 0.018 rad; strain 1.2 noiseless,
+0.119 to 0.082). Elsewhere it mostly hurts, most clearly at strain 0, at 250 nm and at 1e4
+photons: truncated octahedron 250 nm strain 0 goes from 0.043 to 0.118 rad noiseless and from
+0.027 to 0.093 at 1e5, and the 250 nm sphere at strain 0 goes from about 0.02 to about 0.06 at
+every dose. So the gain in sections 3-4 belongs to that particle, not to the threshold.
+
+Why was not measured. A guess that fits the pattern: the 0.2 rounds help where the 0.3 support
+clips part of the particle, as for the 9-px asymmetric one, and add a rim that blurs the phase
+where the 0.3 support already fits. Comparing the final supports with the truth's would test it;
+the survey recorded support sizes but they were not scored.
 
 ## Not covered
 
-- 1e3 photons, the full grid, GPU runs.
+- 1e3 photons, GPU runs. The survey (section 5) covers the other shapes and sizes only for
+  default against schedule; plain 0.2 was run on the asymmetric 150 nm particle only.
 - Where the phase gain sits. The benchmark's phase RMSE is unweighted over truth > 30% of max,
   and for a 9-px particle about half of that region is in the outer pixel (1 - (7/9)^3 for a
   sphere). The 0.3 support clips exactly that rim. An interior-only score (truth > 60%) or an
