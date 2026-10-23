@@ -78,6 +78,11 @@ composable pieces of a recipe, and multi-start runs are vectorised with `vmap`.
 | **`mask`** | `True` marks an **unusable** pixel (beamstop, hot, saturated). Masked pixels are left unconstrained — never forced to zero. NaN or Inf is refused even under the mask: set those pixels to 0. `diagnose` ignores masked pixels for the peak, negative and NaN checks. |
 | **`support`** | `True` is inside the object. Omit it and an autocorrelation support is derived (loose; pass a real one when you have it). |
 
+Coming from a detector stack (for example [CXD](https://github.com/NaNIsaac/CXD)'s
+`to_qoraphase`): [docs/input-contract.md](docs/input-contract.md) lists what the arrays must
+satisfy, which coordinates stay with the caller, and the effects of cropping, binning and
+interpolation.
+
 ## Composing a reconstruction
 
 Code order is execution order.

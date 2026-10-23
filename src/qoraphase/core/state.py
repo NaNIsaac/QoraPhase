@@ -37,9 +37,14 @@ class ReconState(NamedTuple):
 
 
 def random_init(key: jax.Array, problem, support: jnp.ndarray) -> jnp.ndarray:
-    """Measured amplitude with uniformly random phase, back-transformed."""
+    """Measured amplitude with uniformly random phase, back-transformed.
+
+    Masked pixels start at zero magnitude: what is stored under the mask is not a
+    measurement and must not steer the start.
+    """
     phase = jax.random.uniform(key, problem.amplitude.shape, minval=0.0, maxval=2.0 * jnp.pi)
-    obj = problem.model.adjoint(problem.amplitude * jnp.exp(1j * phase))
+    measured = jnp.where(problem.mask, 0.0, problem.amplitude)
+    obj = problem.model.adjoint(measured * jnp.exp(1j * phase))
     return support_project(obj, support)
 
 
