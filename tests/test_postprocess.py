@@ -250,3 +250,46 @@ def test_average_without_a_problem_reports_no_error():
     averaged = qp.Ensemble(runs).average()
     assert averaged.metrics.size == 0
     assert np.isnan(averaged.error)
+
+
+def _run(obj, error):
+    return qp.Reconstruction(
+        object=jnp.asarray(obj), support=jnp.abs(jnp.asarray(obj)) > 0, metrics=jnp.asarray([error])
+    )
+
+
+def test_consensus_is_the_majority_not_the_lowest_error():
+    """Three equivalent copies of one object and a different one that fits slightly better."""
+    obj = make_object(seed=1)
+    other = make_object(seed=2)
+    rng = np.random.default_rng(0)
+    noise = 1e-3 * (rng.standard_normal(obj.shape) + 1j * rng.standard_normal(obj.shape))
+    copies = [
+        obj + noise,
+        np.roll(obj, (2, -1), axis=(0, 1)) * np.exp(0.4j),
+        np.conj(flip_about_origin(obj)) * np.exp(-1.0j),
+    ]
+    ensemble = qp.Ensemble(
+        (_run(copies[0], 0.02), _run(other, 0.01), *(_run(c, 0.03) for c in copies[1:]))
+    )
+
+    assert ensemble.best.error == pytest.approx(0.01)
+    assert ensemble.consensus is not ensemble[1]  # any of the three copies will do
+    assert np.argmax(ensemble.spread) == 1
+
+
+def test_consensus_needs_three_runs():
+    obj = make_object(seed=1)
+    pair = qp.Ensemble((_run(obj, 0.02), _run(make_object(seed=2), 0.01)))
+    assert pair.consensus is pair.best
+
+
+def test_average_is_built_on_the_consensus_run():
+    obj = make_object(seed=1)
+    other = make_object(seed=2)
+    copies = [obj, np.roll(obj, (1, 1), axis=(0, 1)), obj * np.exp(2.0j)]
+    ensemble = qp.Ensemble((_run(other, 0.01), *(_run(c, 0.02) for c in copies)))
+    averaged = np.asarray(ensemble.average().object)
+    on_best = np.asarray(sum(r.object for r in ensemble.align()) / len(ensemble))
+    assert complex_similarity(averaged, obj) > 0.7
+    assert complex_similarity(averaged, obj) > complex_similarity(on_best, obj)
