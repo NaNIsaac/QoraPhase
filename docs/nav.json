@@ -1,0 +1,19 @@
+{
+  "sidebar": [
+    {
+      "text": "Getting Started",
+      "items": [{ "text": "Overview", "link": "index.md" }]
+    },
+    {
+      "text": "Guides",
+      "items": [
+        { "text": "Input contract", "link": "input-contract.md" },
+        { "text": "GPU environment", "link": "hardware.md" }
+      ]
+    },
+    {
+      "text": "Theory",
+      "items": [{ "text": "Default recipe on simulated BCDI data", "link": "bcdi-support.md" }]
+    }
+  ]
+}
