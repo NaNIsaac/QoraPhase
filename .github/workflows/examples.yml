@@ -1,0 +1,43 @@
+name: examples
+# Runs every script in examples/ from a fresh checkout, the way the README tells a new user to.
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      # Every example has to say whether it runs on synthetic or on measured data.
+      - name: Examples say synthetic or measured
+        run: |
+          python3 - <<'EOF'
+          import ast, pathlib, re, sys
+          bad = [p.name for p in sorted(pathlib.Path("examples").glob("*.py"))
+                 if not re.search(r"\b(synthetic|measured|measurement)\b",
+                                  ast.get_docstring(ast.parse(p.read_text(encoding="utf-8"))) or "", re.I)]
+          sys.exit(f"no synthetic/measured label in the docstring of: {bad}" if bad else 0)
+          EOF
+      - run: uv run --python 3.13 python examples/readme_figure.py
+      - run: uv run --python 3.13 python examples/bench_multistart.py
+      # diagnose.py is for a measured file; feed it a small synthetic one in the same format.
+      - name: examples/diagnose.py on a synthetic scan file
+        run: |
+          uv run --python 3.13 python -c "
+          import numpy as np
+          n = 64
+          y, x = np.mgrid[:n, :n] - n // 2
+          obj = ((x / 12) ** 2 + (y / 9) ** 2 < 1) * np.exp(0.3j * x / 12)
+          intensity = np.abs(np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(obj)))) ** 2
+          mask = np.zeros(intensity.shape, bool)
+          mask[n // 2, :3] = True
+          np.savez('$RUNNER_TEMP/scan.npz', intensity=intensity, mask=mask)
+          "
+          uv run --python 3.13 python examples/diagnose.py "$RUNNER_TEMP/scan.npz" --key intensity --mask-key mask --no-run
