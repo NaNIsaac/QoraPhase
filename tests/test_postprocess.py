@@ -264,12 +264,36 @@ def test_consensus_needs_three_runs():
     assert pair.consensus is pair.best
 
 
+def _frame_overlap(a, reference):
+    """Normalised overlap and relative phase with no shift search, so a position or phase offset counts."""
+    v = np.vdot(np.asarray(reference), np.asarray(a))
+    return abs(v) / (np.linalg.norm(a) * np.linalg.norm(reference)), np.angle(v)
+
+
 def test_average_is_built_on_the_consensus_run():
     obj = make_object(seed=1)
     other = make_object(seed=2)
-    copies = [obj, np.roll(obj, (1, 1), axis=(0, 1)), obj * np.exp(2.0j)]
+    rng = np.random.default_rng(0)
+    noise = 1e-2 * (rng.standard_normal(obj.shape) + 1j * rng.standard_normal(obj.shape))
+    # The noise-free, shifted and rotated copy has the smallest spread, so it is the consensus
+    # run; the two other copies get noise to break the tie between equivalent runs.
+    copies = [
+        obj + noise,
+        np.roll(obj, (2, -1), axis=(0, 1)) * np.exp(0.4j),
+        obj * np.exp(2.0j) + noise,
+    ]
     ensemble = qp.Ensemble((_run(other, 0.01), *(_run(c, 0.02) for c in copies)))
+    consensus = np.asarray(ensemble.consensus.object)
+    assert np.allclose(consensus, copies[1])
+
     averaged = np.asarray(ensemble.average().object)
     on_best = np.asarray(sum(r.object for r in ensemble.align()) / len(ensemble))
     assert complex_similarity(averaged, obj) > 0.7
-    assert complex_similarity(averaged, obj) > complex_similarity(on_best, obj)
+
+    # Both means are the same object up to a global shift and phase, so complex_similarity cannot
+    # tell them apart (it differed only by rounding, at 1e-7 on macOS). What differs is the frame:
+    # the average sits where the consensus run sits, the mean on the best run where `other` sits.
+    overlap, phase = _frame_overlap(averaged, consensus)
+    assert overlap > 0.95
+    assert abs(phase) < 0.05
+    assert _frame_overlap(on_best, consensus)[0] < 0.8
