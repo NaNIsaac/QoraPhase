@@ -59,11 +59,6 @@ def test_unknown_breed_mode_is_rejected():
         qp.evolve(problem, qp.ER(1), breed="nope")
 
 
-# --------------------------------------------------------------------------
-# starting from an object
-# --------------------------------------------------------------------------
-
-
 def test_initial_state_can_start_from_an_object():
     obj, support, intensity = make_data()
     problem = qp.CDI(intensity, support=support)
@@ -73,10 +68,6 @@ def test_initial_state_can_start_from_an_object():
 
     assert np.allclose(state.obj, np.where(support, start, 0))
 
-
-# --------------------------------------------------------------------------
-# generations
-# --------------------------------------------------------------------------
 
 QUICK = qp.Recipe(qp.RAAR(20, beta=0.9), qp.ER(10))
 
@@ -124,11 +115,6 @@ def test_a_recipe_per_generation(easy):
     assert len(ensemble.history) == 2
     with pytest.raises(ValueError, match="recipes for"):
         qp.evolve(easy, [qp.ER(5)], starts=2, generations=3)
-
-
-# --------------------------------------------------------------------------
-# the point of it
-# --------------------------------------------------------------------------
 
 
 def converged(ensemble):

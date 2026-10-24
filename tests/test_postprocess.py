@@ -10,11 +10,6 @@ import qoraphase as qp
 RECIPE = qp.Recipe(qp.RAAR(400, beta=0.9), qp.ER(200))
 
 
-# --------------------------------------------------------------------------
-# align_to
-# --------------------------------------------------------------------------
-
-
 def test_alignment_leaves_an_already_aligned_object_alone():
     obj = jnp.asarray(make_object())
     assert np.allclose(qp.align_to(obj, obj), obj, atol=1e-5)
@@ -53,11 +48,6 @@ def test_alignment_reconciles_two_independent_runs():
 
     for run in ensemble[1:]:
         assert complex_similarity(qp.align_to(run.object, reference), reference) > 0.99
-
-
-# --------------------------------------------------------------------------
-# sub-pixel registration
-# --------------------------------------------------------------------------
 
 
 def fourier_shift(x, shift):
@@ -114,11 +104,6 @@ def test_subpixel_alignment_still_resolves_phase_and_twin():
     aligned = qp.align_to(mangled, obj, upsample=100)
 
     assert np.linalg.norm(aligned - obj) < 0.05 * np.linalg.norm(obj)
-
-
-# --------------------------------------------------------------------------
-# remove_ramp
-# --------------------------------------------------------------------------
 
 
 def with_ramp(obj, slopes):
@@ -184,11 +169,6 @@ def test_remove_ramp_runs_under_jit():
     plain = qp.remove_ramp(obj)
     compiled = jax.jit(qp.remove_ramp, static_argnames=("pad", "iterations", "zero_phase"))(obj)
     assert np.allclose(plain, compiled, atol=1e-5)
-
-
-# --------------------------------------------------------------------------
-# Ensemble.align / Ensemble.average
-# --------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
