@@ -21,7 +21,7 @@ import jax.numpy as jnp
 from qoraphase.models.fft import FFT
 
 SHAPES = [(256, 256), (1024, 1024), (64, 64, 64), (128, 128, 128), (65, 64, 63)]
-INSTRUCTION = re.compile(r"^\s*(?:ROOT )?%\S+ = (\w+)\[([\d,]*)\]\S* ([\w-]+)\(", re.M)
+INSTRUCTION = re.compile(r"^\s*(?:ROOT )?%\S+ = (\w+)\[([\d,]*)\]\S* ([\w-]+)\(", re.MULTILINE)
 FREE = {"parameter", "constant", "fft", "bitcast", "tuple", "get-tuple-element"}
 
 
