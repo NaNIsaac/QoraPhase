@@ -16,11 +16,6 @@ def shifted(intensity, offset):
     return np.roll(intensity, offset, axis=tuple(range(intensity.ndim)))
 
 
-# --------------------------------------------------------------------------
-# centring
-# --------------------------------------------------------------------------
-
-
 def test_centred_data_reports_no_offset(data):
     _, _, intensity = data
     assert peak_offset(intensity) == (0, 0)
@@ -47,11 +42,6 @@ def test_off_centre_data_is_flagged(data):
     _, support, intensity = data
     report = qp.diagnose(shifted(intensity, (2, 0)), support=support)
     assert any("off centre" in w for w in report.warnings)
-
-
-# --------------------------------------------------------------------------
-# oversampling
-# --------------------------------------------------------------------------
 
 
 def test_oversampling_tracks_the_object_size():
@@ -89,11 +79,6 @@ def test_a_well_sampled_measurement_leaves_room():
     report = qp.diagnose(intensity, support=support)
     assert max(report.autocorrelation_fill) < 0.5
     assert report.warnings == ()
-
-
-# --------------------------------------------------------------------------
-# the rest of the report
-# --------------------------------------------------------------------------
 
 
 def test_clean_data_produces_no_warnings(data):
