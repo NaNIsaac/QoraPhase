@@ -34,11 +34,6 @@ def converged_count(support, intensity, recipe, seeds=(0, 1, 2), starts=16):
     return total
 
 
-# --------------------------------------------------------------------------
-# half_support
-# --------------------------------------------------------------------------
-
-
 def test_half_support_breaks_the_centrosymmetry():
     _, support, _ = make_data(m=11, seed=3, centrosymmetric=True)
     support = jnp.asarray(support)
@@ -76,11 +71,6 @@ def test_half_support_follows_the_axis():
     assert not np.array_equal(rows, cols)
 
 
-# --------------------------------------------------------------------------
-# the Detwin stage
-# --------------------------------------------------------------------------
-
-
 def test_detwin_restores_the_full_support(problem):
     """The cut is temporary; later stages must see the support they expected."""
     state = initial_state(jax.random.key(0), problem)
@@ -102,11 +92,6 @@ def test_detwin_reports_its_body_metrics(problem):
     state = initial_state(jax.random.key(0), problem)
     _, metrics = qp.detwin(qp.HIO(7), qp.ER(3)).run(state, problem)
     assert metrics.shape == (10,)
-
-
-# --------------------------------------------------------------------------
-# what it buys
-# --------------------------------------------------------------------------
 
 
 def test_detwin_rescues_starts_on_a_centrosymmetric_support():
