@@ -35,7 +35,11 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = ["pytest>=8"]
-examples = ["scikit-image>=0.26"]
+examples = [
+    "pyvista>=0.49.1",
+    "scikit-image>=0.26",
+    "scipy>=1.18.1",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
