@@ -653,7 +653,8 @@ All test data is **synthetic**; no measured data ships with the repository.
 - [docs/benchmarks/ladder.md](docs/benchmarks/ladder.md): success rate and error over 20
   starts as the data gets worse (noiseless, then Poisson noise at three count levels, each
   with the exact, a dilated and an autocorrelation support), after shift, phase and twin
-  are resolved. `uv run python benchmarks/ladder.py` regenerates it in about a minute on CPU.
+  are resolved, then with a beamstop, detector gaps and a stronger phase.
+  `uv run --python 3.14+gil python benchmarks/ladder.py` regenerates it in about a minute on CPU.
 - Known limits:
   - The noise-floor check needs the true object, so it applies to synthetic data only.
   - The fixture has Poisson noise and nothing else: no detector gaps, no partial coherence,

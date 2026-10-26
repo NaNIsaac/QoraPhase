@@ -1,10 +1,14 @@
 """Benchmark ladder on synthetic 2D data, CPU: how often and how well the default recipe recovers
 a known object as the measurement gets worse.
 
-    uv run python benchmarks/ladder.py            # writes docs/benchmarks/
-    uv run python benchmarks/ladder.py --quick    # 4 seeds, a smoke run
+    uv run --python 3.14+gil python benchmarks/ladder.py            # writes docs/benchmarks/
+    uv run --python 3.14+gil python benchmarks/ladder.py --quick    # 4 seeds, a smoke run
 
-Stage 1 is noiseless, stage 2 adds Poisson noise and a support that is not the true one. Every
+``+gil`` keeps uv off a free-threaded Python, for which jaxlib has no wheel; on a machine with
+both builds of 3.14, uv on Windows otherwise picked the free-threaded one.
+
+Stage 1 is noiseless, stage 2 adds Poisson noise and a support that is not the true one, stage 3
+adds a beamstop, detector gaps and dead pixels, and a stronger phase. Every
 case runs the same seeds with the same iteration budget (720, the length of ``default_recipe``).
 
 Each start is scored against the true object after resolving the three CDI ambiguities: shift
@@ -48,6 +52,17 @@ STYLE = {
     "autocorrelation + shrinkwrap": ("#009E73", "^", ":"),
 }
 PEAKS = (1e4, 1e6, 1e8)
+# Stage 3, at the middle count level of stage 2.
+STAGE3_PEAK = 1e6
+BEAMSTOP = 4
+GAP, GAP_OFFSET, DEAD, MASK_SEED = 3, 12, 0.005, 31
+STRONG_PHASE = 2.5
+CONDITIONS = (
+    "beamstop",
+    "gaps + dead pixels",
+    f"phase ±{STRONG_PHASE:g} rad",
+    "all three",
+)
 
 
 def smooth(rng, shape, width):
@@ -58,11 +73,11 @@ def smooth(rng, shape, width):
     return field / np.abs(field).max()
 
 
-def make_object():
-    """A complex object (amplitude 0.4 to 1, phase within +-1 rad) on a triangular support, which
-    is not centrosymmetric, so the twin is a different object."""
+def make_object(phase=1.0):
+    """A complex object (amplitude 0.4 to 1, phase within +-``phase`` rad) on a triangular
+    support, which is not centrosymmetric, so the twin is a different object."""
     rng = np.random.default_rng(OBJECT_SEED)
-    block = (0.7 + 0.3 * smooth(rng, (M, M), 3)) * np.exp(1j * smooth(rng, (M, M), 5))
+    block = (0.7 + 0.3 * smooth(rng, (M, M), 3)) * np.exp(1j * phase * smooth(rng, (M, M), 5))
     block = block * (np.indices((M, M)).sum(0) < M)
     obj = np.zeros((N, N), complex)
     lo = N // 2 - M // 2
@@ -82,6 +97,22 @@ def dilate(mask, px):
             grown |= np.roll(out, 1, axis) | np.roll(out, -1, axis)
         out = grown
     return out
+
+
+def beamstop():
+    """Unusable pixels: a disc of radius BEAMSTOP around the zero frequency."""
+    y, x = np.indices((N, N)) - N // 2
+    return x**2 + y**2 <= BEAMSTOP**2
+
+
+def gaps():
+    """Unusable pixels: a horizontal and a vertical module gap, GAP pixels wide and off centre,
+    plus DEAD of the pixels at random."""
+    mask = np.zeros((N, N), bool)
+    lo = N // 2 + GAP_OFFSET
+    mask[lo : lo + GAP, :] = True
+    mask[:, lo : lo + GAP] = True
+    return mask | (np.random.default_rng(MASK_SEED).random((N, N)) < DEAD)
 
 
 def fixed_support_recipe():
@@ -107,6 +138,7 @@ def score(obj, truth):
 class Case:
     stage: int
     peak: float | None
+    condition: str
     support: str
     errors: list[float]
     twins: int
@@ -120,21 +152,26 @@ class Case:
         return sum(e < SUCCESS for e in self.errors)
 
 
-def run_case(stage, peak, support_name, obj, seeds):
+def run_case(stage, peak, support_name, obj, seeds, condition="", mask=None):
+    """``mask`` marks unusable pixels: they read 0 and are left out of the fit and the floor."""
     clean = np.abs(centered_fft(obj)) ** 2
+    usable = np.ones(clean.shape, bool) if mask is None else ~mask
     if peak is None:
         data, scale, floor = clean, 1.0, 0.0
     else:
         scale = peak / clean.max()
         data = np.random.default_rng(NOISE_SEED).poisson(clean * scale).astype(float)
-        floor = float(np.sqrt(((np.sqrt(clean * scale) - np.sqrt(data)) ** 2).sum() / data.sum()))
+        misfit = (np.sqrt(clean * scale) - np.sqrt(data)) ** 2
+        floor = float(np.sqrt(misfit[usable].sum() / data[usable].sum()))
+    data = np.where(usable, data, 0.0)
     true_support = np.abs(obj) > 0
     if support_name == "exact":
-        problem, recipe = qp.CDI(data, support=true_support), fixed_support_recipe()
+        support, recipe = true_support, fixed_support_recipe()
     elif support_name == "dilated 2 px":
-        problem, recipe = qp.CDI(data, support=dilate(true_support, 2)), fixed_support_recipe()
+        support, recipe = dilate(true_support, 2), fixed_support_recipe()
     else:
-        problem, recipe = qp.CDI(data), qp.default_recipe()
+        support, recipe = None, qp.default_recipe()
+    problem = qp.CDI(data, support=support, mask=mask)
 
     def once():
         t = time.perf_counter()
@@ -149,6 +186,7 @@ def run_case(stage, peak, support_name, obj, seeds):
     return Case(
         stage,
         peak,
+        condition,
         support_name,
         [e for e, _ in scored],
         sum(t for _, t in scored),
@@ -181,10 +219,11 @@ def environment():
 def table(cases, seeds):
     lines = [
         (
-            "| stage | peak counts | support | success | twin | real-space error, median (IQR) "
-            "| Fourier residual, median | residual / noise floor | first call s | warm s |"
+            "| stage | peak counts | condition | support | success | twin "
+            "| real-space error, median (IQR) | Fourier residual, median | residual / noise floor "
+            "| first call s | warm s |"
         ),
-        "|---:|---:|---|---:|---:|---:|---:|---:|---:|---:|",
+        "|---:|---:|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for c in cases:
         med, q1, q3 = quartiles(c.errors)
@@ -192,7 +231,8 @@ def table(cases, seeds):
         ratio = f"{fmed / c.floor:.2f}" if c.floor else "n/a"
         peak = "noiseless" if c.peak is None else f"{c.peak:.0e}"
         lines.append(
-            f"| {c.stage} | {peak} | {c.support} | {c.success}/{len(seeds)} | {c.twins} "
+            f"| {c.stage} | {peak} | {c.condition or '-'} | {c.support} "
+            f"| {c.success}/{len(seeds)} | {c.twins} "
             f"| {med:.2e} ({q1:.2e} to {q3:.2e}) | {fmed:.2e} | {ratio} "
             f"| {c.first_s:.1f} | {c.warm_s:.1f} |"
         )
@@ -200,8 +240,23 @@ def table(cases, seeds):
 
 
 def figure(cases, path):
-    fig, (left, right) = plt.subplots(1, 2, figsize=(10, 4), constrained_layout=True)
-    noisy = [c for c in cases if c.peak is not None]
+    fig, (left, right, third) = plt.subplots(1, 3, figsize=(15, 4.4), constrained_layout=True)
+    noisy = [c for c in cases if c.stage == 2]
+    hard = [c for c in cases if c.stage == 3]
+    for k, (name, (colour, marker, line)) in enumerate(STYLE.items()):
+        mine = [c for c in hard if c.support == name]
+        third.plot(
+            np.arange(len(mine)) + (k - 1) * 0.08,
+            [c.success / len(c.errors) for c in mine],
+            color=colour,
+            marker=marker,
+            linestyle=line,
+            label=name,
+        )
+    third.set_xticks(range(len(CONDITIONS)), CONDITIONS, rotation=15, fontsize=8)
+    third.set(ylim=(-0.05, 1.05), ylabel="success rate")
+    third.set_title(f"Stage 3 at {STAGE3_PEAK:.0e} peak counts")
+    third.legend(fontsize=8)
     for name, (colour, marker, line) in STYLE.items():
         mine = [c for c in noisy if c.support == name]
         peaks = [c.peak for c in mine]
@@ -250,6 +305,18 @@ def main():
         for support in STYLE:
             cases.append(run_case(2, peak, support, obj, seeds))
             print(table(cases[-1:], seeds)[-1], flush=True)
+    strong = make_object(STRONG_PHASE)
+    stage3 = dict(
+        zip(
+            CONDITIONS,
+            ((obj, beamstop()), (obj, gaps()), (strong, None), (strong, beamstop() | gaps())),
+            strict=True,
+        )
+    )
+    for condition, (target, mask) in stage3.items():
+        for support in STYLE:
+            cases.append(run_case(3, STAGE3_PEAK, support, target, seeds, condition, mask))
+            print(table(cases[-1:], seeds)[-1], flush=True)
     OUT.mkdir(parents=True, exist_ok=True)
     figure(cases, OUT / "ladder.png")
     text = [
@@ -273,12 +340,33 @@ def main():
             f"- success: real-space error < {SUCCESS:g}. This is an arbitrary threshold, not derived "
             "from the data; the median and IQR are given so another cut can be read off."
         ),
+        (
+            f"- stage 3 at {STAGE3_PEAK:.0e} peak counts: beamstop = disc of radius {BEAMSTOP} px "
+            f"at zero frequency; gaps = a horizontal and a vertical {GAP}-px gap {GAP_OFFSET} px "
+            f"off centre plus {DEAD:.1%} dead pixels (seed {MASK_SEED}); phase = the same object "
+            f"with phase within ±{STRONG_PHASE:g} rad. Masked pixels read 0 and are left out of "
+            "the fit and of the noise floor; the real-space error still covers the whole array."
+        ),
+        (
+            "- reproduce: `uv run --python 3.14+gil python benchmarks/ladder.py`; with a "
+            "free-threaded 3.14 also installed, a plain `uv run` on Windows picked it and jaxlib has "
+            "no wheel for it"
+        ),
         "- twin: starts whose twin matched the truth better than the start itself",
         "- times: one vmapped call for all starts; a first call compiles only when its recipe is new to the run, so later rows show run time in both columns",
         "",
         *table(cases, seeds),
         "",
         "![ladder](ladder.png)",
+        "",
+        "## Not compared",
+        "",
+        (
+            "PyNX: the `pynx` package on PyPI is an unrelated project, and ESRF PyNX "
+            "(gitlab.esrf.fr/favre/PyNX) depends on `pyvkfft`, which needs an OpenCL or CUDA "
+            "toolkit to build and has no Windows wheel. A comparison on a Linux machine with a GPU "
+            "toolkit would be separate work."
+        ),
         "",
     ]
     (OUT / "ladder.md").write_text("\n".join(text), encoding="utf-8")
