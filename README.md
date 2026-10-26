@@ -650,6 +650,10 @@ All test data is **synthetic**; no measured data ships with the repository.
   - the shrinkwrap support must be no smaller than the object.
 - The other tests reconstruct synthetic objects in 2D and 3D against an independent numpy
   FFT (`tests/conftest.py`).
+- [docs/benchmarks/ladder.md](docs/benchmarks/ladder.md): success rate and error over 20
+  starts as the data gets worse (noiseless, then Poisson noise at three count levels, each
+  with the exact, a dilated and an autocorrelation support), after shift, phase and twin
+  are resolved. `uv run python benchmarks/ladder.py` regenerates it in about a minute on CPU.
 - Known limits:
   - The noise-floor check needs the true object, so it applies to synthetic data only.
   - The fixture has Poisson noise and nothing else: no detector gaps, no partial coherence,
