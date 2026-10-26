@@ -6,17 +6,22 @@
 The data and the reference stay outside the repository: ``--data`` is the engine's prepared
 intensity (``array``), ``--reference`` the prefix of its ``-AMP.rec``, ``-PH.rec`` and ``-SUP.rec``
 files (saved gpuArrays). Only summary numbers are written, to ``docs/benchmarks/measured.md``:
-no images, arrays or scan parameters.
+no images, arrays or scan parameters. ``--keep`` saves QoraPhase's results to a local ``.npz``
+outside the repository and reuses them on the next run, so the comparison can change without
+phasing again.
 
 A measured dataset has no ground truth, so the comparison is between the two results:
 
 - orientation: the reference is tried under every combination of axis flips, and the one with
-  the lowest Fourier residual against the data is kept, each after undoing a phase ramp (the
-  engine may reorient and remove the ramp on saving);
-- mutual error: each QoraPhase start registered onto the reference (shift, global phase, twin,
-  complex scale), as in the ladder;
+  the lowest Fourier residual against the data is kept, each after restoring a phase ramp (the
+  engine may reorient and remove the ramp on saving), then cut to its saved support, since the
+  saved array is the iterate before the support step;
 - Fourier residual of every result against the same data, after a least-squares scale;
-- spread: the mutual error among QoraPhase's own starts, for scale.
+- mutual error, built up one alignment at a time so each one's share shows: shift to 1/10 px,
+  global phase, twin and complex scale, as in the ladder; then a linear phase ramp to 1/10 px of
+  the pattern; then only inside the reference support or where either amplitude exceeds 0.1 of
+  its maximum; then the amplitudes alone in that region;
+- spread: the same errors among QoraPhase's own starts, for scale.
 """
 
 import argparse
@@ -29,12 +34,21 @@ from pathlib import Path
 import numpy as np
 
 import qoraphase as qp
+from qoraphase.postprocess import _register_and_apply, register, twin
 
 sys.path.insert(0, str(Path(__file__).parent))
-from ladder import centered_fft, environment, score
+from ladder import centered_fft, environment
 from legacy import box_support, matched_recipe
 
 OUT = Path(__file__).parents[1] / "docs" / "benchmarks" / "measured.md"
+UPSAMPLE = 10
+LEVEL = 0.1
+METRICS = (
+    "complex, whole array: shift, phase, twin, scale",
+    "+ linear phase ramp",
+    "+ only inside support or amplitude > 0.1 max",
+    "amplitude only, same region",
+)
 
 
 def load_intensity(path):
@@ -70,36 +84,52 @@ def residual(obj, amplitude):
     return float(np.sqrt(((c * computed - amplitude) ** 2).sum() / (amplitude**2).sum()))
 
 
-def oriented(reference, amplitude):
-    """*reference* under the axis flips and phase ramp that best fit the data, and that fit."""
-    flips = [
-        axes
-        for r in range(reference.ndim + 1)
-        for axes in itertools.combinations(range(reference.ndim), r)
-    ]
+def ramped(obj, modulus):
+    """*obj* times the linear phase ramp that moves its pattern onto *modulus*, and the shift."""
+    shift, _ = register(modulus, np.abs(centered_fft(obj)), UPSAMPLE)
+    shift = tuple(float(s) for s in shift)
+    grids = np.meshgrid(*(np.arange(n) - n // 2 for n in obj.shape), indexing="ij")
+    phase = sum(s * g / n for s, g, n in zip(shift, grids, obj.shape, strict=True))
+    return obj * np.exp(2j * np.pi * phase), shift
+
+
+def oriented(reference, support, amplitude):
+    """*reference* and *support* under the flips and ramp that best fit the data, the flips, the
+    pattern shift and the fit."""
     fits = []
-    for axes in flips:
-        moved, ramp = recentred(np.flip(reference, axes) if axes else reference, amplitude)
-        fits.append((residual(moved, amplitude), axes, ramp, moved))
-    fit, axes, ramp, moved = min(fits, key=lambda f: f[0])
-    return moved, axes, ramp, fit
+    for r in range(reference.ndim + 1):
+        for axes in itertools.combinations(range(reference.ndim), r):
+            moved, shift = ramped(np.flip(reference, axes), amplitude)
+            fits.append((residual(moved, amplitude), axes, shift, moved))
+    fit, axes, shift, moved = min(fits, key=lambda f: f[0])
+    return moved, np.flip(support, axes), axes, shift, fit
 
 
-def recentred(reference, amplitude):
-    """*reference* with the phase ramp that moves its diffraction onto the data's.
+def aligned(obj, reference, ramp):
+    """*obj* or its twin, optionally ramped, registered and scaled onto *reference*."""
+    best = None
+    for is_twin, candidate in ((False, obj), (True, np.asarray(twin(obj)))):
+        if ramp:
+            candidate, _ = ramped(candidate, np.abs(centered_fft(reference)))
+        moved = np.asarray(_register_and_apply(candidate, reference, UPSAMPLE)[0])
+        moved = moved * np.vdot(moved, reference) / np.vdot(moved, moved)
+        err = np.linalg.norm(moved - reference) / np.linalg.norm(reference)
+        if best is None or err < best[0]:
+            best = (err, is_twin, moved)
+    return best
 
-    The engine may remove a phase ramp before saving, which shifts the computed pattern off
-    the measured one; the integer shift is found by cross-correlating the two moduli.
-    """
-    computed = np.abs(centered_fft(reference))
-    corr = np.fft.ifftn(np.fft.fftn(amplitude) * np.conj(np.fft.fftn(computed))).real
-    shift = np.unravel_index(int(np.argmax(corr)), corr.shape)
-    shift = tuple(
-        int(s) if s <= n // 2 else int(s) - n for s, n in zip(shift, corr.shape, strict=True)
-    )
-    pattern = np.roll(centered_fft(reference), shift, axis=tuple(range(reference.ndim)))
-    moved = np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(pattern), norm="ortho"))
-    return moved, shift
+
+def errors(obj, reference, support):
+    """The four mutual errors of METRICS, and whether the twin matched."""
+    plain, is_twin, _ = aligned(obj, reference, ramp=False)
+    ramp_err, _, moved = aligned(obj, reference, ramp=True)
+    region = support | (np.abs(reference) > LEVEL * np.abs(reference).max())
+    region |= np.abs(moved) > LEVEL * np.abs(moved).max()
+    a, b = moved[region], reference[region]
+    inside = np.linalg.norm(a * np.vdot(a, b) / np.vdot(a, a) - b) / np.linalg.norm(b)
+    a, b = np.abs(a), np.abs(b)
+    amp = np.linalg.norm(a * (a @ b) / (a @ a) - b) / np.linalg.norm(b)
+    return [float(plain), float(ramp_err), float(inside), float(amp)], is_twin
 
 
 def run(problem, recipe, starts):
@@ -109,17 +139,27 @@ def run(problem, recipe, starts):
     return objects, (time.perf_counter() - t) / starts
 
 
-def describe(name, objects, reference, amplitude, seconds):
+def own_support(obj):
+    return np.abs(obj) > LEVEL * np.abs(obj).max()
+
+
+def summary(name, objects, reference, support, amplitude, seconds):
+    """A fit row, and per metric the best-fitting start against the reference, the median start
+    and the median among the starts themselves."""
     fits = [residual(o, amplitude) for o in objects]
-    mutual = [score(o, reference)[0] for o in objects]
-    twins = sum(score(o, reference)[1] for o in objects)
-    best = objects[int(np.argmin(fits))]
-    own = [score(a, b)[0] for a, b in itertools.combinations(objects, 2)]
-    return (
+    against = [errors(o, reference, support) for o in objects]
+    best = against[int(np.argmin(fits))][0]
+    twins = sum(t for _, t in against)
+    own = [errors(a, b, own_support(b))[0] for a, b in itertools.combinations(objects, 2)]
+    fit = (
         f"| {name} | {len(objects)} | {statistics.median(fits):.3f} ({min(fits):.3f}) "
-        f"| {score(best, reference)[0]:.3f} | {statistics.median(mutual):.3f} | {twins} "
-        f"| {statistics.median(own):.3f} | {seconds:.0f} |"
+        f"| {twins} | {seconds:.0f} |"
     )
+    cells = [
+        (best[m], statistics.median(e[m] for e, _ in against), statistics.median(o[m] for o in own))
+        for m in range(len(METRICS))
+    ]
+    return fit, cells
 
 
 def main():
@@ -128,6 +168,7 @@ def main():
     parser.add_argument("--reference", required=True)
     parser.add_argument("--label", required=True, help="how the report names the dataset")
     parser.add_argument("--starts", type=int, default=10)
+    parser.add_argument("--keep", help="local .npz for QoraPhase's results, reused when present")
     args = parser.parse_args()
 
     intensity = load_intensity(args.data)
@@ -135,42 +176,83 @@ def main():
     reference = load_rec(f"{args.reference}-AMP.rec") * np.exp(
         1j * load_rec(f"{args.reference}-PH.rec")
     )
-    reference, flips, ramp, reference_fit = oriented(reference, amplitude)
-    print(f"reference: flips {flips}, ramp {ramp}, residual {reference_fit:.3f}", flush=True)
+    support = load_rec(f"{args.reference}-SUP.rec") > 0.5
+    iterate, support, flips, shift, iterate_fit = oriented(reference, support, amplitude)
+    # The engine saves its last iterate after the Fourier step, before the support step, so it
+    # matches the data nearly by construction; QoraPhase returns support-projected objects.
+    reference = iterate * support
+    outside = float((np.abs(iterate[~support]) ** 2).sum() / (np.abs(iterate) ** 2).sum())
+    reference_fit = residual(reference, amplitude)
+    print(
+        f"reference: flips {flips}, shift {shift}, residual {iterate_fit:.4f} as saved, "
+        f"{reference_fit:.4f} in its support, {outside:.3f} of the energy outside",
+        flush=True,
+    )
 
-    rows = []
     shape = intensity.shape
-    for name, problem, recipe in (
-        (
-            "QoraPhase, matched",
+    recipes = {
+        "QoraPhase, matched": (
             qp.CDI(intensity, support=box_support(shape)),
             matched_recipe(shape),
         ),
-        ("QoraPhase, default", qp.CDI(intensity), qp.default_recipe()),
-    ):
-        objects, seconds = run(problem, recipe, args.starts)
-        rows.append(describe(name, objects, reference, amplitude, seconds))
-        print(rows[-1], flush=True)
+        "QoraPhase, default": (qp.CDI(intensity), qp.default_recipe()),
+    }
+    kept = dict(np.load(args.keep)) if args.keep and Path(args.keep).exists() else {}
+    results = {}
+    for i, (name, (problem, recipe)) in enumerate(recipes.items()):
+        if f"objects{i}" in kept:
+            results[name] = (list(kept[f"objects{i}"]), float(kept[f"seconds{i}"]))
+        else:
+            results[name] = run(problem, recipe, args.starts)
+    if args.keep and not kept:
+        np.savez(
+            args.keep,
+            **{f"objects{i}": np.stack(r[0]) for i, r in enumerate(results.values())},
+            **{f"seconds{i}": r[1] for i, r in enumerate(results.values())},
+        )
+
+    fits, columns = [], []
+    for name, (objects, seconds) in results.items():
+        fit, cells = summary(name, objects, reference, support, amplitude, seconds)
+        fits.append(fit)
+        columns.append(cells)
+        print(fit, cells, flush=True)
 
     flipped = "none" if not flips else ", ".join(f"axis {a}" for a in flips)
     lines = [
         f"## {args.label}",
         "",
         *environment(),
-        f"- {args.starts} starts per recipe, keys split from seed 0; 3D, CPU",
+        f"- {len(next(iter(results.values()))[0])} starts per recipe, keys split from seed 0; 3D, CPU",
         (
-            f"- lab MATLAB reference: one saved reconstruction (shrinkwrap run); Fourier residual "
-            f"{reference_fit:.3f} after flipping {flipped} and restoring a removed phase ramp "
-            f"(pattern shift {', '.join(map(str, ramp))} px)"
+            f"- lab MATLAB reference: one saved reconstruction, a single run (no genetic algorithm, "
+            f"no averaging), on the same prepared intensity; oriented by flipping {flipped} and "
+            f"restoring a removed phase ramp (pattern shift "
+            f"{', '.join(f'{s:.1f}' for s in shift)} px)"
         ),
+        (
+            f"- the saved array is the iterate after the Fourier step, before the support step: "
+            f"Fourier residual {iterate_fit:.3f} as saved, with {outside:.1%} of its energy outside "
+            f"its saved support; cut to that support, as compared below, {reference_fit:.3f}"
+        ),
+        "- the lab code's own spread over seeds is not measured yet: it needs MATLAB",
         "",
-        (
-            "| engine | starts | Fourier residual, median (best) | mutual error, best run vs "
-            "reference | mutual error, median | twin | spread among own starts, median "
-            "| s per start, incl. compile (reference) |"
+        "| engine | starts | Fourier residual, median (best) | twin vs reference | s per start, incl. compile |",
+        "|---|---:|---:|---:|---:|",
+        *fits,
+        "",
+        "Mutual error: the best-fitting start against the reference (median start in brackets), and the median among the engine's own starts.",
+        "",
+        "| alignment | "
+        + " | ".join(f"{n}: vs reference | {n}: own starts" for n in results)
+        + " |",
+        "|---|" + "---:|" * (2 * len(results)),
+        *(
+            f"| {metric} | "
+            + " | ".join(f"{c[m][0]:.3f} ({c[m][1]:.3f}) | {c[m][2]:.3f}" for c in columns)
+            + " |"
+            for m, metric in enumerate(METRICS)
         ),
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
-        *rows,
         "",
     ]
     header = [

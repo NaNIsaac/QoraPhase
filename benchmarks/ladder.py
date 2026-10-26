@@ -373,9 +373,11 @@ def main():
         (
             "On one measured 3D dataset (`benchmarks/measured.py`, numbers in "
             "[measured.md](measured.md)), against one saved reconstruction from the lab MATLAB code: "
-            "Fourier residual 0.297 for that reconstruction, 0.310 for the best of 10 QoraPhase "
-            "starts; mutual error between the two 0.40, against a spread of 0.10 among QoraPhase's "
-            "own starts. Physics check needed: these are the numbers only, read by the owner."
+            "Fourier residual 0.315 for that reconstruction cut to its support (it was saved before the "
+            "support step), 0.310 for the best of 10 QoraPhase starts; mutual error between the two "
+            "0.235 (0.179 on amplitudes alone), against a median of 0.099 (0.079) among QoraPhase's "
+            "own starts. The lab code's own spread is not measured yet. Physics check needed: these "
+            "are the numbers only, read by the owner."
         ),
         "",
         (
