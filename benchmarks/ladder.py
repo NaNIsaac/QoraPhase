@@ -368,6 +368,21 @@ def main():
             "toolkit would be separate work."
         ),
         "",
+        "## Lab MATLAB code",
+        "",
+        (
+            "On one measured 3D dataset (`benchmarks/measured.py`, numbers in "
+            "[measured.md](measured.md)), against one saved reconstruction from the lab MATLAB code: "
+            "Fourier residual 0.297 for that reconstruction, 0.310 for the best of 10 QoraPhase "
+            "starts; mutual error between the two 0.40, against a spread of 0.10 among QoraPhase's "
+            "own starts. Physics check needed: these are the numbers only, read by the owner."
+        ),
+        "",
+        (
+            "On the synthetic stages (`benchmarks/legacy.py`) the comparison has not run: it needs a "
+            "MATLAB installation."
+        ),
+        "",
     ]
     (OUT / "ladder.md").write_text("\n".join(text), encoding="utf-8")
     print(f"wrote {OUT / 'ladder.md'}")
