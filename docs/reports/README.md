@@ -14,8 +14,8 @@ box; the question, result and limits are given here instead.
   data gets worse (noise, support, beamstop, gaps, strong phase).
 - **Verification and limits:** [Public measured data (CXIDB)](../benchmarks/cxidb.md). Neither published
   reconstruction (CXIDB 3, CXIDB 28) is reproduced yet
-  ([#38](https://github.com/NaNIsaac/QoraPhase/issues/38)); the measured comparison rests on one reference
-  run, and the lab code's own spread is not measured.
+  ([#38](https://github.com/NaNIsaac/QoraPhase/issues/38)); the measured comparison is one dataset,
+  summary numbers only.
 
 ## All reports
 
