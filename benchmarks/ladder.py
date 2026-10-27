@@ -368,6 +368,16 @@ def main():
             "toolkit would be separate work."
         ),
         "",
+        "## Public measured data",
+        "",
+        (
+            "Stage 4, in [cxidb.md](cxidb.md) (`benchmarks/cxidb.py`): CXIDB 3, H. N. Chapman et "
+            "al., Nat. Phys. 2, 839 (2006), doi:10.1038/nphys461, data doi:10.11577/1096905; and "
+            "CXIDB 28, S. Marchesini et al., Phys. Rev. B 68, 140101(R) (2003), "
+            "doi:10.1103/PhysRevB.68.140101, data doi:10.11577/1172615. Neither published "
+            "reconstruction is reproduced: see #38. Physics check needed."
+        ),
+        "",
         "## Lab MATLAB code",
         "",
         (
