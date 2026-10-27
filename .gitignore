@@ -11,3 +11,6 @@ wheels/
 
 # Design specs (local only)
 QoraPhase 설계 명세서*.md
+
+# Downloaded benchmark data (benchmarks/cxidb.py)
+data/
