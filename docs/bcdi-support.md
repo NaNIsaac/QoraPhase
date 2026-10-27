@@ -1,5 +1,13 @@
 # Default recipe on simulated BCDI data: support, not stagnation
 
+[Back to all reports](reports/README.md)
+
+> **Question.** Why does the default recipe stop at a Fourier error of 0.05 on noiseless simulated BCDI data, and why did noiseless cases show a larger phase error than noisy ones at strain 1.2 rad?
+>
+> **Result.** The 0.05 is not stagnation but is set by the support the recipe ends with; the noiseless-is-worse result is most likely selection luck; a lower shrinkwrap threshold helps only in part, so the default stays at 0.3.
+>
+> **Limits.** Small objects (about 9-15 px), no 1e3-photon or GPU runs, one run per number on a shared machine.
+
 The BCDI benchmark in rocking_xrd_sim#6 reported that `qp.reconstruct` with the default recipe
 stops at a Fourier error of 0.05 on noiseless data, while the true object fits the frames to
 2e-4, and that at strain 1.2 rad the noiseless cases had a larger phase error than the noisy
@@ -262,3 +270,5 @@ the survey recorded support sizes but they were not scored.
   twin; not examined.
 - Whether the consensus selector keeps working with fewer than 8 starts. The tests in #20 cover
   only the construction.
+
+[Back to all reports](reports/README.md)
