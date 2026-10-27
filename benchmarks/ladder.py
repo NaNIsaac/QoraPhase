@@ -386,8 +386,10 @@ def main():
             "Fourier residual 0.315 for that reconstruction cut to its support (it was saved before the "
             "support step), 0.310 for the best of 10 QoraPhase starts; mutual error between the two "
             "0.235 (0.179 on amplitudes alone), against a median of 0.099 (0.079) among QoraPhase's "
-            "own starts. The lab code's own spread is not measured yet. Physics check needed: these "
-            "are the numbers only, read by the owner."
+            "own starts. Rerun 20 times with the saved parameters, the lab code itself fits to 0.309 at "
+            "best, lies 0.234 from its saved reconstruction, and its runs differ by a median of 0.090 "
+            "(0.072) among themselves and 0.092 (0.073) from QoraPhase's matched starts. Physics check "
+            "needed: these are the numbers only, read by the owner."
         ),
         "",
         (

@@ -10,6 +10,12 @@ no images, arrays or scan parameters. ``--keep`` saves QoraPhase's results to a 
 outside the repository and reuses them on the next run, so the comparison can change without
 phasing again.
 
+``--lab`` adds the lab engine's own spread: a folder of ``lab-<seed>.mat`` files that
+``benchmarks/measured_driver.m`` writes by rerunning the engine with the reference's saved
+parameters, one seed each (the engine is not in this repository; put its folders on the MATLAB
+path first). Each run is cut to its final support, as the reference is, and compared like a
+QoraPhase start; a last table compares the two engines' runs with each other.
+
 A measured dataset has no ground truth, so the comparison is between the two results:
 
 - orientation: the reference is tried under every combination of axis flips, and the one with
@@ -75,6 +81,19 @@ def load_rec(path):
 
     walk(matio.load_from_mat(str(path))["array"].properties)
     return np.asarray(max(found, key=lambda a: a.size), float)
+
+
+def load_lab(folder):
+    """The engine's reruns cut to their supports, its median seconds and median chi."""
+    from scipy.io import loadmat
+
+    runs = [loadmat(p) for p in sorted(Path(folder).glob("lab-*.mat"))]
+    if not runs:
+        raise SystemExit(f"no lab-*.mat in {folder}")
+    objects = [np.asarray(r["iterate"] * r["support"], complex) for r in runs]
+    seconds = statistics.median(float(r["seconds"].squeeze()) for r in runs)
+    chi = statistics.median(float(r["chi"].squeeze()) for r in runs)
+    return objects, seconds, chi
 
 
 def residual(obj, amplitude):
@@ -162,6 +181,16 @@ def summary(name, objects, reference, support, amplitude, seconds):
     return fit, cells
 
 
+def between(objects, others, amplitude):
+    """Per metric, the best-fitting run of *objects* against the best-fitting one of *others*,
+    and the median over all pairs; *others* is the side registered onto."""
+    best = min(objects, key=lambda o: residual(o, amplitude))
+    other = min(others, key=lambda o: residual(o, amplitude))
+    top = errors(best, other, own_support(other))[0]
+    pairs = [errors(a, b, own_support(b))[0] for a in objects for b in others]
+    return [(top[m], statistics.median(p[m] for p in pairs)) for m in range(len(METRICS))]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--data", required=True)
@@ -169,6 +198,7 @@ def main():
     parser.add_argument("--label", required=True, help="how the report names the dataset")
     parser.add_argument("--starts", type=int, default=10)
     parser.add_argument("--keep", help="local .npz for QoraPhase's results, reused when present")
+    parser.add_argument("--lab", help="folder of lab-<seed>.mat reruns from measured_driver.m")
     args = parser.parse_args()
 
     intensity = load_intensity(args.data)
@@ -211,12 +241,37 @@ def main():
             **{f"seconds{i}": r[1] for i, r in enumerate(results.values())},
         )
 
+    lab = None
+    if args.lab:
+        objects, seconds, chi = load_lab(args.lab)
+        lab = f"lab MATLAB, {len(objects)} seeds"
+        results[lab] = (objects, seconds)
+
     fits, columns = [], []
     for name, (objects, seconds) in results.items():
         fit, cells = summary(name, objects, reference, support, amplitude, seconds)
         fits.append(fit)
         columns.append(cells)
         print(fit, cells, flush=True)
+
+    cross = []
+    if lab:
+        for name in results:
+            if name == lab:
+                continue
+            cells = between(results[name][0], results[lab][0], amplitude)
+            print(name, "vs", lab, cells, flush=True)
+            cross.append(f"| {name} | " + " | ".join(f"{t:.3f} ({p:.3f})" for t, p in cells) + " |")
+        spread = [
+            (
+                f"- lab MATLAB reruns (`benchmarks/measured_driver.m`): the reference's saved "
+                f"parameters, MATLAB `rng` seeds 0 to {len(results[lab][0]) - 1}, the engine's GPU "
+                f"path as in the saved run; engine chi median {chi:.4f}; each run cut to its final "
+                f"support; its time column is per run on the GPU, not comparable with the CPU rows"
+            ),
+        ]
+    else:
+        spread = ["- the lab code's own spread over seeds is not measured yet: it needs MATLAB"]
 
     flipped = "none" if not flips else ", ".join(f"axis {a}" for a in flips)
     lines = [
@@ -235,7 +290,7 @@ def main():
             f"Fourier residual {iterate_fit:.3f} as saved, with {outside:.1%} of its energy outside "
             f"its saved support; cut to that support, as compared below, {reference_fit:.3f}"
         ),
-        "- the lab code's own spread over seeds is not measured yet: it needs MATLAB",
+        *spread,
         "",
         "| engine | starts | Fourier residual, median (best) | twin vs reference | s per start, incl. compile |",
         "|---|---:|---:|---:|---:|",
@@ -255,6 +310,18 @@ def main():
         ),
         "",
     ]
+    if cross:
+        lines += [
+            (
+                "Between the engines: each QoraPhase recipe's best-fitting start against the best-"
+                "fitting lab run (median over all pairs in brackets), registered onto the lab run."
+            ),
+            "",
+            "| QoraPhase recipe | " + " | ".join(METRICS) + " |",
+            "|---|" + "---:|" * len(METRICS),
+            *cross,
+            "",
+        ]
     header = [
         "# Measured data",
         "",
