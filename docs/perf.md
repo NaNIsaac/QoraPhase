@@ -1,5 +1,13 @@
 # Where reconstructions spend their time
 
+[Back to all reports](reports/README.md)
+
+> **Question.** Where does a reconstruction spend its time on CPU, and what limits it?
+>
+> **Result.** Time is the iteration count times the cost of one modulus projection; the FFT plus the fftshift/ifftshift sandwich is 77-97 % of every step at 256² and up, and compilation is about 0.5-1.7 s per new shape and recipe.
+>
+> **Limits.** CPU only, synthetic data, one run of the script; no GPU was run and no custom kernel was tried.
+
 Measured on CPU with `benchmarks/perf.py`, on synthetic data, using the public API
 (`qp.reconstruct` with the default recipe) and the stage classes directly. This is
 Phase A of issue #2 for the CPU only. No GPU was run, so there are no GPU numbers here,
@@ -303,3 +311,5 @@ consequences for using the harness:
   (before, after, before, after) rather than running all of one and then all of the other, so
   a change in machine load hits both. The `ranges overlap` column of `--compare` is a
   first check, not a significance test.
+
+[Back to all reports](reports/README.md)
