@@ -23,7 +23,7 @@ true object: 7.9e-7. Script: `examples/readme_figure.py`.
 | Date | Report | Result |
 |---|---|---|
 | 2026-10-27 | [Public measured data (CXIDB)](docs/benchmarks/cxidb.md) | Neither published reconstruction is reproduced yet. Physics check needed. |
-| 2026-10-27 | [Measured data](docs/benchmarks/measured.md) | Best of 10 starts: Fourier residual 0.310 against 0.315 for the lab reconstruction. Physics check needed. |
+| 2026-10-27 | [Measured data](docs/benchmarks/measured.md) | Best of 10 starts: Fourier residual 0.310 against 0.315 for the lab reconstruction; 20 lab reruns differ from QoraPhase by a median of 0.092, from each other by 0.090. Physics check needed. |
 | 2026-10-27 | [Benchmark ladder](docs/benchmarks/ladder.md) | Exact support: 20 of 20 starts at every stage; dilated or autocorrelation support: 0 to 10 of 20. |
 | 2026-10-25 | [Where reconstructions spend their time](docs/perf.md) | The FFT and its shift sandwich take 77-97 % of a step at 256² and up. |
 | 2026-10-23 | [Default recipe on simulated BCDI data](docs/bcdi-support.md) | The 0.05 Fourier error floor is set by the final support, not stagnation. |
