@@ -5,6 +5,20 @@ report; **draft** is not final; **superseded** points to what replaced it. Repor
 *generated* are written by the named script and rewritten on every run, so they carry no summary
 box; the question, result and limits are given here instead.
 
+## Start here
+
+- **Key result:** [Measured data](../benchmarks/measured.md). On one measured 3D dataset, Fourier residual
+  0.310 for the best of 10 starts against 0.315 for the lab MATLAB reconstruction; mutual error 0.235.
+  Physics check needed.
+- **Method:** [Benchmark ladder](../benchmarks/ladder.md). Success rate and error over 20 starts as synthetic
+  data gets worse (noise, support, beamstop, gaps, strong phase).
+- **Verification and limits:** [Public measured data (CXIDB)](../benchmarks/cxidb.md). Neither published
+  reconstruction (CXIDB 3, CXIDB 28) is reproduced yet
+  ([#38](https://github.com/NaNIsaac/QoraPhase/issues/38)); the measured comparison is one dataset,
+  summary numbers only.
+
+## All reports
+
 | Date | Report | Result | Status |
 |---|---|---|---|
 | 2026-10-27 | [Public measured data (CXIDB)](../benchmarks/cxidb.md) | Neither published reconstruction (CXIDB 3, CXIDB 28) is reproduced yet ([#38](https://github.com/NaNIsaac/QoraPhase/issues/38)). Physics check needed. | checked, generated (`benchmarks/cxidb.py`) |
