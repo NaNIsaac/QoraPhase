@@ -18,6 +18,15 @@ starts from `qp.reconstruct(intensity, starts=8)` with no support given (it is
 derived from the autocorrelation and shrinkwrapped). Relative error against the
 true object: 7.9e-7. Script: `examples/readme_figure.py`.
 
+## Start with the evidence
+
+- **Reconstruction example:** [synthetic intensity and recovered object](docs/reconstruction.png) · [generation script](examples/readme_figure.py).
+- **Measured-data limits:** [CXIDB comparison](docs/benchmarks/cxidb.md) · [measured-data report](docs/benchmarks/measured.md). These reports do **not** claim independent reproduction of published measurements.
+- **Algorithm behavior:** [multi-start benchmark](docs/benchmarks/ladder.md) · [simulated BCDI support study](docs/bcdi-support.md).
+- **Performance:** [iteration time profile](docs/perf.md) · [all research reports](docs/reports/README.md).
+
+The headline reconstruction uses **synthetic, noiseless** data; treat measured-data performance separately.
+
 ## Reports
 
 | Date | Report | Result |
