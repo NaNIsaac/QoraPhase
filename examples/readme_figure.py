@@ -53,15 +53,20 @@ panels = [
     ),
 ]
 
-fig, axes = plt.subplots(1, 5, figsize=(12.5, 2.9))
+# Both phase panels use the same physical scale (radians). Give each a
+# labeled colorbar so the values are interpretable even when axes are hidden.
+fig, axes = plt.subplots(1, 5, figsize=(15.0, 3.2), layout="constrained")
 for ax, (img, title, cmap, lim) in zip(axes, panels, strict=False):
     vmin, vmax = lim or (None, None)
-    ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
+    artist = ax.imshow(img, cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_title(title, fontsize=10)
     ax.set_axis_off()
-fig.tight_layout()
+    if title.endswith("phase"):
+        bar = fig.colorbar(artist, ax=ax, fraction=0.046, pad=0.03, ticks=[0, 0.4, 0.8, 1.2])
+        bar.set_label("Phase (rad)", fontsize=9)
+        bar.ax.tick_params(labelsize=8)
 
 out = Path(__file__).resolve().parents[1] / "docs" / "reconstruction.png"
 out.parent.mkdir(exist_ok=True)
-fig.savefig(out, dpi=90, facecolor="white")
+fig.savefig(out, dpi=150, facecolor="white")
 print(f"wrote {out}")
