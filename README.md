@@ -2,14 +2,20 @@
 
 [![PyPI](https://img.shields.io/pypi/v/qoraphase)](https://pypi.org/project/qoraphase/) [![Tests](https://github.com/NaNIsaac/QoraPhase/actions/workflows/ci.yml/badge.svg)](https://github.com/NaNIsaac/QoraPhase/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/NaNIsaac/QoraPhase/blob/main/LICENSE)
 
-**Phase retrieval for coherent diffraction imaging in JAX: pass a diffraction intensity array, get the complex object back.**
+A diffraction detector measures **how bright each part of a pattern is**, but
+not the phase of the scattered X-ray wave. Without that phase, the pattern
+cannot simply be Fourier-transformed into an image of the object. This is the
+*phase-retrieval problem* in coherent diffraction imaging (CDI).
 
-In coherent diffraction imaging (CDI) the detector records only the intensity of
-the far-field diffraction pattern; the phase is lost. QoraPhase recovers the
-complex object (amplitude and phase) from a measured 2D or 3D pattern with the
-standard iterative algorithms (ER, HIO, RAAR, shrinkwrap), on CPU or GPU. It is
-for people who already have a centred diffraction pattern as an array and want
-a reconstruction they can check.
+**QoraPhase estimates a possible object from the measured intensity.** It
+iterates between diffraction-space measurements and real-space constraints
+using algorithms such as ER, HIO, RAAR, and shrinkwrap. The result is a
+complex-valued object: amplitude and phase. It accepts centred 2D or 3D
+NumPy/JAX arrays, and can run on CPU or GPU.
+
+A reconstruction that matches the measured intensity is **not automatically
+the correct or unique object**. The synthetic example and measured-data
+checks below show both what the code can do and what remains unresolved.
 
 ![Simulated object, its diffraction intensity, and the reconstruction](https://raw.githubusercontent.com/NaNIsaac/QoraPhase/main/docs/reconstruction.png)
 
@@ -18,14 +24,14 @@ starts from `qp.reconstruct(intensity, starts=8)` with no support given (it is
 derived from the autocorrelation and shrinkwrapped). Relative error against the
 true object: 7.9e-7. Script: `examples/readme_figure.py`.
 
-## Start with the evidence
+## Examples and validation
 
-- **Reconstruction example:** [synthetic intensity and recovered object](docs/reconstruction.png) · [generation script](examples/readme_figure.py).
-- **Measured-data limits:** [CXIDB comparison](docs/benchmarks/cxidb.md) · [measured-data report](docs/benchmarks/measured.md). These reports do **not** claim independent reproduction of published measurements.
-- **Algorithm behavior:** [multi-start benchmark](docs/benchmarks/ladder.md) · [simulated BCDI support study](docs/bcdi-support.md).
-- **Performance:** [iteration time profile](docs/perf.md) · [all research reports](docs/reports/README.md).
+- **Try the synthetic example:** [generated diffraction intensity and recovered object](docs/reconstruction.png) · [script that produces the figure](examples/readme_figure.py).
+- **See what has *not* worked on public measurements:** [CXIDB tests](docs/benchmarks/cxidb.md) did not reproduce either published image. A separate [laboratory-data comparison](docs/benchmarks/measured.md) reports results, but its input arrays are not public.
+- **Understand failure modes:** [repeated-start study](docs/benchmarks/ladder.md) · [simulated BCDI support study](docs/bcdi-support.md).
+- **Inspect runtime costs:** [iteration profile](docs/perf.md) · [complete research reports](docs/reports/README.md).
 
-The headline reconstruction uses **synthetic, noiseless** data; treat measured-data performance separately.
+The image above uses **synthetic, noiseless** data. Matching a public diffraction pattern's intensity is not by itself proof that its recovered image is correct.
 
 ## Reports
 
