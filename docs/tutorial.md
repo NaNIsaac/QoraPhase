@@ -28,6 +28,8 @@ best = ensemble.best
 aligned = np.asarray(qp.align_to(best.object, obj))
 print(f"Fourier error {best.error:.1e}")
 print(f"error against the true object {np.linalg.norm(aligned - obj) / np.linalg.norm(obj):.1e}")
+assert best.error < 1e-5
+assert np.linalg.norm(aligned - obj) / np.linalg.norm(obj) < 1e-4
 '@ | Set-Content -Encoding utf8 qoraphase-tutorial.py
 uv run --python 3.12 -q python qoraphase-tutorial.py
 ```
