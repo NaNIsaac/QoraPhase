@@ -2,18 +2,98 @@
   "sidebar": [
     {
       "text": "Getting Started",
-      "items": [{ "text": "Overview", "link": "index.md" }]
+      "items": [
+        {
+          "text": "Overview",
+          "link": "index.md"
+        },
+        {
+          "text": "Installation",
+          "link": "install.md"
+        },
+        {
+          "text": "Reconstruct a synthetic object",
+          "link": "tutorial.md"
+        },
+        {
+          "text": "Release history",
+          "link": "https://github.com/NaNIsaac/QoraPhase/releases"
+        }
+      ]
     },
     {
       "text": "Guides",
       "items": [
-        { "text": "Input contract", "link": "input-contract.md" },
-        { "text": "GPU environment", "link": "hardware.md" }
+        {
+          "text": "Array conventions",
+          "link": "guides/arrays.md"
+        },
+        {
+          "text": "Input contract",
+          "link": "input-contract.md"
+        },
+        {
+          "text": "Recipes and multiple starts",
+          "link": "guides/recipes.md"
+        },
+        {
+          "text": "Partial coherence and phase constraints",
+          "link": "guides/constraints.md"
+        },
+        {
+          "text": "Check the measurement and reconstruction",
+          "link": "guides/diagnostics.md"
+        },
+        {
+          "text": "Alignment, averaging and PRTF",
+          "link": "guides/combining.md"
+        },
+        {
+          "text": "Validation and limits",
+          "link": "guides/validation.md"
+        }
       ]
     },
     {
-      "text": "Theory",
-      "items": [{ "text": "Default recipe on simulated BCDI data", "link": "bcdi-support.md" }]
+      "text": "Manual benchmarks",
+      "items": [
+        {
+          "text": "Genetic algorithm",
+          "link": "guides/genetic.md"
+        },
+        {
+          "text": "Low-pass resolution progression",
+          "link": "guides/low-pass.md"
+        },
+        {
+          "text": "Where reconstructions spend their time",
+          "link": "perf.md"
+        },
+        {
+          "text": "GPU environment of the benchmark machine",
+          "link": "hardware.md"
+        },
+        {
+          "text": "Default recipe on simulated BCDI data: support, not stagnation",
+          "link": "bcdi-support.md"
+        },
+        {
+          "text": "Benchmark ladder",
+          "link": "benchmarks/ladder.md"
+        },
+        {
+          "text": "Public measured data (CXIDB)",
+          "link": "benchmarks/cxidb.md"
+        },
+        {
+          "text": "Measured data",
+          "link": "benchmarks/measured.md"
+        },
+        {
+          "text": "Reports",
+          "link": "reports/README.md"
+        }
+      ]
     }
   ]
 }
