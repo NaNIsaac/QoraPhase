@@ -7,7 +7,11 @@ import jax.numpy as jnp
 import numpy as np
 
 from ..models.fft import FFT
-from ..operators.support import autocorrelation_support
+from ..operators.support import (
+    autocorrelation_support,
+    centre_masked,
+    masked_autocorrelation_support,
+)
 from .validate import check_inputs
 
 
@@ -55,11 +59,12 @@ class CDI:
         intensity = jnp.asarray(intensity)
         amplitude = jnp.sqrt(jnp.clip(intensity, 0.0, None))
         mask = jnp.zeros(intensity.shape, bool) if mask_np is None else jnp.asarray(mask_np, bool)
-        support = (
-            autocorrelation_support(intensity, support_threshold)
-            if support_np is None
-            else jnp.asarray(support_np, bool)
-        )
+        if support_np is not None:
+            support = jnp.asarray(support_np, bool)
+        elif centre_masked(mask):
+            support = masked_autocorrelation_support(intensity, mask)
+        else:
+            support = autocorrelation_support(intensity, support_threshold)
         self._set(amplitude, mask, support, model if model is not None else FFT())
 
     def _set(self, amplitude, mask, support, model) -> None:

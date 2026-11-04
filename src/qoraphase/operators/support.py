@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 import jax.numpy as jnp
 
+from .shrinkwrap import gaussian_blur
+
 
 def support_project(obj: jnp.ndarray, support: jnp.ndarray) -> jnp.ndarray:
     """Zero everything outside the support."""
@@ -47,3 +49,35 @@ def autocorrelation_support(intensity: jnp.ndarray, threshold: float = 0.1) -> j
     """
     ac = jnp.abs(jnp.fft.fftshift(jnp.fft.ifftn(jnp.fft.ifftshift(intensity))))
     return ac > threshold * ac.max()
+
+
+def masked_autocorrelation_support(
+    intensity: jnp.ndarray,
+    mask: jnp.ndarray,
+    factor: float = 3.0,
+    sigma: float | None = None,
+) -> jnp.ndarray:
+    """Default support when the mask covers the centre of the pattern.
+
+    With the lowest frequencies masked the autocorrelation is high-passed: its
+    peak is whatever sharp structure is left, such as the streaks of a window
+    frame, and a fraction of the maximum keeps only that (#38).  The full extent
+    of the autocorrelation still stands out against the background, so the
+    blurred magnitude is cut at *factor* times its median, which is the
+    background level as long as the autocorrelation covers less than half the
+    array.  *sigma* defaults to 1 % of the mean side, at least 1 pixel: much
+    less leaves gaps in the high-passed autocorrelation (0.5 px fails a
+    synthetic test, 1 to 8 px pass), and on the two CXIDB patterns the area
+    changed by under 6 % for sigma from 8 to 24 px.
+    """
+    usable = jnp.where(mask, 0.0, intensity)
+    ac = jnp.abs(jnp.fft.fftshift(jnp.fft.ifftn(jnp.fft.ifftshift(usable))))
+    if sigma is None:
+        sigma = max(1.0, 0.01 * sum(intensity.shape) / intensity.ndim)
+    blurred = gaussian_blur(ac, sigma)
+    return blurred > factor * jnp.median(blurred)
+
+
+def centre_masked(mask: jnp.ndarray) -> bool:
+    """Whether the zero-frequency pixel, at index ``n // 2`` per axis, is masked."""
+    return bool(mask[tuple(n // 2 for n in mask.shape)])

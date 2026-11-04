@@ -97,7 +97,10 @@ def reconstruct(
     Args:
         intensity: measured intensity, center-origin, 2D or 3D.
         support: boolean, ``True`` inside the object.  ``None`` derives an
-            autocorrelation support.
+            autocorrelation support: above ``support_threshold`` times its
+            maximum, or, when *mask* covers the centre of the pattern, the
+            blurred autocorrelation above 3 times its median
+            (:func:`~qoraphase.operators.support.masked_autocorrelation_support`).
         mask: boolean, ``True`` marks *unusable* pixels.
         recipe: ``None`` uses :func:`default_recipe`.
         starts: number of random starts; >1 returns an :class:`Ensemble`.

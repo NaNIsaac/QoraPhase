@@ -2,11 +2,16 @@
 
 import jax.numpy as jnp
 import numpy as np
+import pytest
 from conftest import flip_about_origin, make_data
 
 import qoraphase as qp
 from qoraphase.operators.modulus import modulus_project
-from qoraphase.operators.support import autocorrelation_support, support_project
+from qoraphase.operators.support import (
+    autocorrelation_support,
+    masked_autocorrelation_support,
+    support_project,
+)
 
 
 def test_support_projection_zeros_outside(data):
@@ -78,3 +83,50 @@ def test_autocorrelation_support_fits_the_object(data):
 
     assert auto.sum() > support.sum()  # loose: roughly twice the object
     assert np.array_equal(auto, flip_about_origin(auto))  # autocorrelations are centrosymmetric
+
+
+def centre_hole(shape, radius):
+    grid = np.indices(shape) - np.array([n // 2 for n in shape]).reshape(-1, *[1] * len(shape))
+    return np.sqrt((grid**2).sum(0)) <= radius
+
+
+def fits_somewhere(region, support):
+    spill = np.fft.ifftn(np.fft.fftn(~region) * np.conj(np.fft.fftn(support))).real.round()
+    return spill.min() == 0
+
+
+@pytest.mark.parametrize("sigma", [None, 1.0, 2.0, 4.0, 8.0])
+def test_masked_autocorrelation_support_survives_a_centre_hole(sigma):
+    """With the centre masked the autocorrelation loses its low frequencies, and a fraction of
+    its maximum no longer covers the object (#38). The background-relative estimate does, over a
+    range of blur widths."""
+    _, support, intensity = make_data(shape=(128, 128), m=20)
+    mask = centre_hole(intensity.shape, 6)
+    holed = np.where(mask, 0.0, intensity)
+
+    old = np.asarray(autocorrelation_support(jnp.asarray(holed), 0.1))
+    assert not fits_somewhere(old, support)
+
+    new = np.asarray(
+        masked_autocorrelation_support(jnp.asarray(holed), jnp.asarray(mask), sigma=sigma)
+    )
+    assert fits_somewhere(new, support)
+    assert support.sum() < new.sum() < 0.5 * new.size
+
+
+def test_cdi_picks_the_start_support_by_whether_the_centre_is_masked():
+    _, _, intensity = make_data(shape=(128, 128), m=20)
+    hole = centre_hole(intensity.shape, 6)
+    gap = np.zeros(intensity.shape, bool)
+    gap[:, 10] = True
+
+    holed = qp.CDI(np.where(hole, 0.0, intensity), mask=hole)
+    expected = masked_autocorrelation_support(
+        jnp.asarray(np.where(hole, 0.0, intensity)), jnp.asarray(hole)
+    )
+    assert np.array_equal(np.asarray(holed.support), np.asarray(expected))
+
+    gapped = qp.CDI(intensity, mask=gap)
+    assert np.array_equal(
+        np.asarray(gapped.support), np.asarray(autocorrelation_support(jnp.asarray(intensity), 0.1))
+    )
