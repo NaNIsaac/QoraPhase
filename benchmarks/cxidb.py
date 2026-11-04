@@ -30,7 +30,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import qoraphase as qp
-from qoraphase.operators.shrinkwrap import gaussian_blur
 from qoraphase.postprocess import align_to
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -42,19 +41,6 @@ DATA = ROOT / "data" / "cxidb"
 SATURATED = 65535
 DROP = 1 / np.e
 FWHM = 2.3548
-
-
-def loose_support(intensity, sigma=12, factor=3):
-    """Where the blurred autocorrelation stands clear of its median level.
-
-    With the mirror hole of entry 3 masked, the autocorrelation is high-passed and its peak is the
-    bright cross of the window-frame streaks, so a threshold at a fraction of the maximum keeps
-    only that cross, which shrinkwrap cannot grow out of (#38). Its outline above the background
-    level still has the extent of the object's autocorrelation.
-    """
-    ac = np.abs(np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(intensity))))
-    blurred = np.asarray(gaussian_blur(ac, sigma))
-    return blurred > factor * np.median(blurred)
 
 
 def flash_schedule(iterations, every=70, group=5):
@@ -91,7 +77,6 @@ class Entry:
     citation: str
     paper: str
     start: str
-    support: Callable[[np.ndarray], np.ndarray]
     schedule: Callable[[int], list]
     iterations: int
     status: str
@@ -116,10 +101,10 @@ ENTRIES = {
             "average of 250 reconstructions, and its PRTF drops to 1/e at the edge of the CCD"
         ),
         (
-            "the blurred autocorrelation (sigma 12 px) above 3 times its median (`loose_support`); "
-            "a fraction of its maximum keeps only the cross of the window-frame streaks (#38)"
+            "the library's own, `CDI(intensity, mask=mask)`: with the centre masked, the blurred "
+            "autocorrelation above 3 times its median; a fraction of its maximum keeps only the "
+            "cross of the window-frame streaks (#38)"
         ),
-        loose_support,
         flash_schedule,
         3500,
         (
@@ -146,10 +131,10 @@ ENTRIES = {
             "hundred iterations, shown at 1000; resolution about 20 nm, no PRTF given"
         ),
         (
-            "the blurred autocorrelation (sigma 12 px) above 3 times its median (`loose_support`); "
-            "the paper's 4 % of the maximum keeps 51 px here, the failure of #38"
+            "the library's own, `CDI(intensity, mask=mask)`: with the centre masked, the blurred "
+            "autocorrelation above 3 times its median; the paper's 4 % of the maximum keeps 51 px "
+            "here, the failure of #38"
         ),
-        loose_support,
         als_schedule,
         2000,
         (
@@ -268,13 +253,13 @@ def run(entry, starts, iterations):
     intensity, mask, (cy, cx), note = prepare(entry, raw)
     amplitude = np.sqrt(intensity)
     usable = ~mask
-    support = entry.support(intensity)
+    problem = qp.CDI(intensity, mask=mask)
+    support = np.asarray(problem.support)
     print(
         f"entry {entry.number}: {raw.shape} -> {intensity.shape}, centre ({cy:.1f}, {cx:.1f}), "
         f"{mask.sum()} masked, start support {support.sum()} px",
         flush=True,
     )
-    problem = qp.CDI(intensity, support=support, mask=mask)
     rows, results = [], {}
     for name, recipe in (
         ("paper schedule", qp.Recipe(*entry.schedule(iterations), qp.ER(200))),
