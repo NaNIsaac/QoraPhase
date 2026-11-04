@@ -1,7 +1,7 @@
 """QoraPhase's default recipe against a lab MATLAB BCDI recipe, on simulated BCDI data.
 
-    ROCKING_XRD_SIM=<checkout> uv run --no-project --python 3.13 --with jax,numpy,scipy \
-        --with-editable . python benchmarks/bcdi_lab.py CASE_DIR [CASE_DIR ...] --out DIR
+    ROCKING_XRD_SIM=<checkout> uv run --python 3.14+gil --with scipy \
+        python benchmarks/bcdi_lab.py CASE_DIR [CASE_DIR ...] --out DIR
 
 CASE_DIR is a case folder written by ``bench.make_cases`` of rocking_xrd_sim (private; it also
 scores the results, so ROCKING_XRD_SIM points at its checkout): ``frames.npy`` (intensity),
@@ -254,8 +254,9 @@ def short_commit(checkout):
 
 
 def locked(name, lock):
-    """Version of *name* pinned in uv.lock; this bench may run outside the lock, where the pinned
-    jaxlib has no wheel for the platform."""
+    """Version of *name* pinned in uv.lock, recorded beside the one that ran: a run outside the
+    lock, or on a free-threaded Python for which the pinned jaxlib has no Windows wheel, gets
+    other versions."""
     match = re.search(rf'name = "{name}"\r?\nversion = "([^"]+)"', lock.read_text(encoding="utf-8"))
     return match.group(1) if match else None
 
