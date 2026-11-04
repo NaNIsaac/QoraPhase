@@ -26,7 +26,7 @@ box; the question, result and limits are given here instead.
 | 2026-10-27 | [Measured data](../benchmarks/measured.md) | On one measured 3D dataset, Fourier residual 0.310 for the best of 10 starts against 0.315 for the lab MATLAB reconstruction; mutual error 0.235. Physics check needed. | checked, generated (`benchmarks/measured.py`) |
 | 2026-10-27 | [Benchmark ladder](../benchmarks/ladder.md) | With the exact support every stage succeeds in 20 of 20 starts; with a dilated or autocorrelation support, 0 to 10 of 20. | checked, generated (`benchmarks/ladder.py`) |
 | 2026-10-25 | [Where reconstructions spend their time](../perf.md) | Time is the iteration count times one modulus projection; the FFT and its shift sandwich take 77-97 % of a step at 256² and up. | checked |
-| 2026-10-23 | [Default recipe on simulated BCDI data: support, not stagnation](../bcdi-support.md) | The 0.05 Fourier error floor is set by the final support, not stagnation; rescored with sub-voxel registration, the two phase groups were an artefact; the default shrinkwrap threshold stays at 0.3. At 3 rad, symmetric particles often end above 0.15 rad without a higher Fourier error. Physics check needed. | draft |
+| 2026-10-23 | [Default recipe on simulated BCDI data: support, not stagnation](../bcdi-support.md) | The 0.05 Fourier error floor is set by the final support, not stagnation; rescored with sub-voxel registration, the two phase groups were an artefact; the default shrinkwrap threshold stays at 0.3. At 3 rad, symmetric particles often end above 0.15 rad; the level of the Fourier error does not flag them across cases, but within one ensemble it does. Physics check needed. | draft |
 
 Details for the generated reports:
 

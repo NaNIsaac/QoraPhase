@@ -4,9 +4,9 @@
 
 > **Question.** Why does the default recipe stop at a Fourier error of 0.05 on noiseless simulated BCDI data, and why did noiseless cases show a larger phase error than noisy ones at strain 1.2 rad?
 >
-> **Result.** The 0.05 is not stagnation but is set by the support the recipe ends with. The noiseless-is-worse result, and the two phase groups behind it, came from scoring with whole-voxel registration; registered to 0.01 voxel the runs form one group. A shrinkwrap schedule that loosens to 0.2 at the end is worse than the default in 24 of 54 benchmark cells, so the default stays at 0.3. At 3 rad, sphere and truncated-octahedron runs often end above 0.15 rad without a higher Fourier error.
+> **Result.** The 0.05 is not stagnation but is set by the support the recipe ends with. The noiseless-is-worse result, and the two phase groups behind it, came from scoring with whole-voxel registration; registered to 0.01 voxel the runs form one group. A shrinkwrap schedule that loosens to 0.2 at the end is worse than the default in 24 of 54 benchmark cells, so the default stays at 0.3. At 3 rad, sphere and truncated-octahedron runs often end above 0.15 rad. The level of the Fourier error does not flag them across cases; within one ensemble they tend to have the highest error, so the lowest-error run mostly avoids them.
 >
-> **Limits.** Small objects (about 9-15 px), no 1e3-photon or GPU runs. Sections 1 and 3 and the plain-0.2 runs are scored to whole voxels and were not rescored.
+> **Limits.** Simulation only, small objects (about 9-15 px), one noise draw per case, 3 seeds x 4 starts per cell; no 1e3-photon or GPU runs. Sections 1 and 3 and the plain-0.2 runs are scored to whole voxels and were not rescored.
 
 The BCDI benchmark in rocking_xrd_sim#6 reported that `qp.reconstruct` with the default recipe
 stops at a Fourier error of 0.05 on noiseless data, while the true object fits the frames to
@@ -17,14 +17,16 @@ ones. This note tests why. In short:
 2. The "noiseless is worse" result does not survive sub-voxel registration. Scored to whole
    voxels, single runs split into two phase groups that the Fourier error could not tell apart.
    Registered to 0.01 voxel, the default's runs at strain 0 and 1.2 rad all end below 0.13 rad,
-   and the lowest-error run is within 0.004 rad of the best one in the median ensemble.
+   and the lowest-error run is within 0.004 rad of the one closest to the truth in the median
+   ensemble.
 3. A lower shrinkwrap threshold (0.2 instead of 0.3) stops converging on QoraPhase's own sharp
    test objects (section 4). A schedule that loosens only in the last two rounds keeps those, but
    over the benchmark's three shapes and two sizes it is worse than the default in 24 of 54 cells
    (19 when scored to whole voxels; section 5). The default stays at 0.3; the schedule is at most
    a recipe option.
-4. At 3 rad, 109 of 288 runs on the sphere and the truncated octahedron end above 0.15 rad, with
-   Fourier errors in the same range as the rest (section 6). Why is not known.
+4. At 3 rad, 109 of 288 runs on the sphere and the truncated octahedron end above 0.15 rad
+   (section 6). Across cases their Fourier errors are in the same range as the rest; within one
+   ensemble they tend to have the highest. Why they end there is not known.
 
 ## Rescoring
 
@@ -33,7 +35,7 @@ reconstruction was shifted onto the truth by the integer peak of the amplitude
 cross-correlation, then the phase ramp was fitted. A translation by a fraction of a voxel is an
 exact ambiguity of the reconstruction. Left uncorrected it adds phase error that the ramp fit
 removes only in part, and it can make the wrong twin overlap the truth better.
-rocking_xrd_sim#15 registers to 0.01 voxel and chooses the twin after the fine shift. For one noiseless run at strain 1.2 rad the four starts
+rocking_xrd_sim#15 (f7c543f) registers to 0.01 voxel and chooses the twin after the fine shift. For one noiseless run at strain 1.2 rad the four starts
 score 0.186, 0.080, 0.184 and 0.185 rad to whole voxels and 0.057, 0.052, 0.051 and 0.053 rad
 registered.
 
@@ -48,7 +50,8 @@ record. Their Fourier errors and support sizes do not depend on the scorer.
 
 The quick grid of rocking_xrd_sim#6 (`python -m bench.make_cases --grid quick`) was regenerated
 locally: an asymmetric 150 nm particle, 61 frames x 128 x 128 pixels at 5.55 keV, strain
-amplitude 0, 1.2 and 3.0 rad, noiseless and 1e5 / 1e4 / 1e3 photons at the peak. In the frame
+amplitude 0, 1.2 and 3.0 rad, noiseless and 1e5 / 1e4 / 1e3 photons at the peak (the 1e3 cases
+were not run here). In the frame
 conjugate to the detector indices the particle spans about 9 pixels across and 8 frames.
 The reference is that PR's `truth_det.npy`, the inverse DFT of the scattering amplitude at
 every detector pixel. Scores come from its `bench.detframe`: the phase RMSE inside the particle
@@ -112,8 +115,9 @@ Scored to whole voxels, single runs at strain 1.2 rad fell into two groups, abou
 and 0.18-0.26 rad, with Fourier errors overlapping within 1e-3, and the lowest-error run came
 from the upper group in 3 of 6 strained ensembles. That was the explanation offered for
 "noiseless worse than noisy", and it motivated the consensus selector of QoraPhase#20. The upper
-group is a registration artefact. The same runs of the survey (default recipe, asymmetric 150 nm
-particle, 3 seeds x 4 starts per case), single starts in rad:
+group is a registration artefact. Those probe runs were not rerun; the same cases in the survey
+(default recipe, asymmetric 150 nm particle, 3 seeds x 4 starts per case) show the same upper
+group to whole voxels and none registered. Single starts in rad:
 
 | case | whole-voxel | registered |
 |---|---|---|
@@ -141,9 +145,10 @@ consensus run):
 
 Over the whole survey (108 ensembles per strain) the picture is the same at strain 0 and 1.2:
 no single start above 0.13 rad, and the lowest-error start is a median 0.003-0.004 rad above the
-best one. The average is at or below the lowest-error run in 89 of 108 ensembles at strain 0 and
-68 of 108 at 1.2; the consensus run alone is not better than the lowest-error run (median 0.069
-against 0.067 rad at 1.2). At 3 rad the order reverses (section 6). `Ensemble.average()` and
+one closest to the truth. The average is at or below the lowest-error run in 89 of 108 ensembles at strain 0 and
+68 of 108 at 1.2. The consensus run alone is about the same as the lowest-error run: lower in
+45, the same run in 31 and higher in 32 of 108 ensembles at strain 0 (both medians 0.023 rad),
+and 32, 31 and 45 at 1.2 (median 0.069 against 0.067 rad). At 3 rad the order reverses (section 6). `Ensemble.average()` and
 `Ensemble.consensus` are not changed here.
 
 ## 3. Shrinkwrap threshold
@@ -240,19 +245,31 @@ rescored.
 The benchmark's survey grid: asymmetric, sphere and truncated octahedron particles, 150 and
 250 nm (about 9 and 15 px), strain 0, 1.2 and 3.0 rad, noiseless, 1e5 and 1e4 photons; 54 cells,
 3 seeds x 4 starts per cell and recipe. QoraPhase at #20 (91cf87a), JAX 0.11.1 on CPU; scored
-with rocking_xrd_sim at #6 (3d135c8, whole-voxel) and at #15 (registered).
+with rocking_xrd_sim at #6 (3d135c8, whole-voxel) and at #15 (f7c543f, registered).
 
 The scoring rule was fixed before any phase value of the survey was read. Per seed, take the
 median phase RMSE over the 4 starts. A cell is "worse" for the schedule if the mean over seeds of
-(schedule - default) exceeds the standard deviation of the default over seeds. The schedule would
-become the default only if no cell is worse and QoraPhase's tests pass with it. As a check that
-does not depend on the spread estimate, a second column counts cells where the schedule is worse
-in all three seeds. The scoring was repeated independently from the rule alone, with no
-disagreement over 54 cells, and the rescoring script reproduces the whole-voxel counts below.
+(schedule - default) exceeds the sample standard deviation (n - 1) of the default over its 3
+seeds. The schedule would become the default only if no cell is worse and QoraPhase's tests pass
+with it. As a check that does not depend on the spread estimate, a second column counts cells
+where the schedule is worse in all three seeds. The whole-voxel scoring was repeated
+independently from the rule alone, with no disagreement over 54 cells; the rescoring script
+reproduces those whole-voxel counts, and a second implementation of the rule agrees with its
+registered counts.
 
 Result: the schedule is worse in 24 of 54 cells registered, 22 by the all-three-seeds count
 (whole-voxel: 19 and 16). The test-suite condition could not change that and was not run. The
-default stays at 0.3 / sigma 1. Cells by group, by median phase error, whole-voxel / registered
+default stays at 0.3 / sigma 1.
+
+These counts need their chance rate. With no true difference, a cell is marked worse with
+probability about 0.17, and worse in all three seeds with probability 0.125 (simulated with
+independent normal seed medians; the real pairs share seeds, so the true rate may be lower):
+about 9 and 7 of 54 cells by chance in each direction. The evidence is the asymmetry, 24 worse
+against 12 better registered (22 against 13 in all three seeds), not the size of either count;
+the change from 19 to 24 is within that noise. At that rate the condition "no cell worse" would
+rarely hold even for a schedule equal to the default.
+
+Cells by group, by median phase error, whole-voxel / registered
 (the last column uses the mirrored rule, against the same spread of the default, which was not
 part of the rule fixed in advance):
 
@@ -299,11 +316,17 @@ and 18 ensembles per row:
 | truncated octahedron, 150 nm | 23 | 0.115 | 2 | 2 | 0.95 |
 | truncated octahedron, 250 nm | 27 | 0.121 | 0 | 4 | 0.97 |
 
-The support is found (IoU 0.95-0.98); the phase inside it is not. The Fourier error does not
-mark these runs across cases: its median is 0.071 for starts above 0.15 rad and 0.068 for the
-rest. Within one ensemble it does better than the agreement between runs. The lowest-error run
-is above 0.15 rad in 6 of 108 ensembles at 3 rad, the consensus run in 20 and
-`Ensemble.average()` in 17, so at 3 rad the consensus selector picks worse than the lowest error.
+The support is found (median IoU of the starts above 0.15 rad 0.95, lowest 0.74); the phase
+inside it is not. The level of the Fourier error does not mark these runs across cases: pooled
+over strains and doses, its median is 0.071 for starts above 0.15 rad and 0.068 for the rest,
+and the level is set mainly by the dose. Within one ensemble it does. In the 61 ensembles at
+3 rad that hold both kinds of start, the 104 starts above 0.15 rad have the highest error of the
+4 in 53 cases; their mean rank is 2.29 (0 for the lowest, 1.5 for no relation). At one dose
+their median error is higher noiseless (0.050 against 0.046) and at 1e5 photons (0.072 against
+0.066), but lower at 1e4 (0.106 against 0.139). A random pick would land on such a start in about
+29 of 108 ensembles at 3 rad. The lowest-error run is above 0.15 rad in 6, the consensus run in
+20 and `Ensemble.average()` in 17, so at 3 rad the consensus selector picks worse than the lowest
+error.
 
 A hypothesis, not tested: at 3 rad the phase wraps inside the particle, and for a
 centrosymmetric shape the twin of a partly wrapped solution is close to another solution, so

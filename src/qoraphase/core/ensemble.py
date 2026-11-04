@@ -49,8 +49,8 @@ class Ensemble:
 
         Runs in different basins can fit the data about equally well, so this is
         not always the run closest to the truth.  On simulated BCDI data
-        (``docs/bcdi-support.md``) it was a median 0.004 rad above the best of 4
-        starts at strain 0 and 1.2 rad.  At 3 rad it ended above 0.15 rad in 6 of
+        (``docs/bcdi-support.md``) it was a median 0.004 rad above the one of its
+        4 starts closest to the truth at strain 0 and 1.2 rad.  At 3 rad it ended above 0.15 rad in 6 of
         108 ensembles, :attr:`consensus` in 20.
         """
         return self.runs[self.ranking[0]]
