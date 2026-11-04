@@ -294,8 +294,8 @@ def summary_of(rows):
 
 
 def prtf_resolution(objects, intensity):
-    """Crossing of 1/e in cycles per pixel (0 when the first shell is already below it) and the
-    curve, rounded."""
+    """Crossing of 1/e in cycles per pixel (nan when the curve never drops below it, 0 when the
+    first shell is already below) and the curve, rounded."""
     curve = qp.prtf(list(objects), intensity, upsample=10)
     return {
         "crossing": float(curve.crossing),
