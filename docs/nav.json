@@ -90,6 +90,10 @@
           "link": "benchmarks/measured.md"
         },
         {
+          "text": "Lab ER/HIO recipe on simulated BCDI data",
+          "link": "benchmarks/bcdi-lab.md"
+        },
+        {
           "text": "Reports",
           "link": "reports/README.md"
         }
