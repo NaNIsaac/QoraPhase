@@ -90,14 +90,21 @@ def reconstruct(
     starts: int = 1,
     batch: int | None = None,
     seed: int | None = None,
-    support_threshold: float = 0.1,
+    support_threshold: float | None = None,
 ) -> Reconstruction | Ensemble:
     """Array in, reconstruction out.
 
     Args:
         intensity: measured intensity, center-origin, 2D or 3D.
         support: boolean, ``True`` inside the object.  ``None`` derives an
-            autocorrelation support.
+            autocorrelation support: when *mask* covers the centre of the
+            pattern, the blurred autocorrelation above 3 times its median
+            (:func:`~qoraphase.operators.support.masked_autocorrelation_support`,
+            which states where it was tested), otherwise above 0.1 times its
+            maximum.
+        support_threshold: a fraction of the autocorrelation maximum.  Given,
+            it is used whether or not the centre is masked; ``None`` picks the
+            rule above.
         mask: boolean, ``True`` marks *unusable* pixels.
         recipe: ``None`` uses :func:`default_recipe`.
         starts: number of random starts; >1 returns an :class:`Ensemble`.
