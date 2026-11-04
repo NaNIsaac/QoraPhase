@@ -25,6 +25,9 @@ class CDI:
 
     Registered as a pytree so it can cross ``jit`` / ``scan`` /
     ``vmap`` boundaries.  ``model`` is a meta field: it is static and hashable.
+
+    Without a *support*, the start support comes from the autocorrelation; see
+    :func:`qoraphase.reconstruct` for the rule and *support_threshold*.
     """
 
     amplitude: jnp.ndarray
@@ -39,7 +42,7 @@ class CDI:
         support=None,
         mask=None,
         model=None,
-        support_threshold: float = 0.1,
+        support_threshold: float | None = None,
         amplitude=None,
     ):
         if amplitude is not None:
@@ -61,10 +64,11 @@ class CDI:
         mask = jnp.zeros(intensity.shape, bool) if mask_np is None else jnp.asarray(mask_np, bool)
         if support_np is not None:
             support = jnp.asarray(support_np, bool)
-        elif centre_masked(mask):
+        elif support_threshold is None and centre_masked(mask):
             support = masked_autocorrelation_support(intensity, mask)
         else:
-            support = autocorrelation_support(intensity, support_threshold)
+            threshold = 0.1 if support_threshold is None else support_threshold
+            support = autocorrelation_support(intensity, threshold)
         self._set(amplitude, mask, support, model if model is not None else FFT())
 
     def _set(self, amplitude, mask, support, model) -> None:
