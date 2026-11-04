@@ -241,10 +241,16 @@ def load_scorer():
     sys.path.insert(0, root)
     from bench import detframe
 
-    commit = subprocess.run(
-        ["git", "-C", root, "rev-parse", "--short", "HEAD"], capture_output=True, text=True
+    return detframe, short_commit(root)
+
+
+def short_commit(checkout):
+    return subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", "--short", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout.strip()
-    return detframe, commit
 
 
 def locked(name, lock):
@@ -256,9 +262,7 @@ def locked(name, lock):
 
 def environment(sim_commit, seed):
     here = Path(__file__).parents[1]
-    commit = subprocess.run(
-        ["git", "-C", str(here), "rev-parse", "--short", "HEAD"], capture_output=True, text=True
-    ).stdout.strip()
+    commit = short_commit(here)
     return {
         "platform": platform.platform(),
         "processor": platform.processor(),
