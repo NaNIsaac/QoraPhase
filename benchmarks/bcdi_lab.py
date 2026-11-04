@@ -311,6 +311,8 @@ def run_case(case, detframe, args):
     raw = np.sqrt(np.clip(frames, 0, None))
     cut = np.where(raw <= 1, 0, raw)
     out = {"case": case.name, "shape": list(frames.shape), "seeds": args.seeds}
+    if args.own_consensus:
+        return run_own_consensus(frames, detframe, truth, q_norm, args, out)
 
     t = time.perf_counter()
     start = auto_support(cut)
@@ -348,12 +350,12 @@ def run_case(case, detframe, args):
         if args.keep:
             kept[f"lab_{label}"] = objects2[chosen["lab"]]
 
-    column, objects = run_default(frames, None, detframe, truth, q_norm, args)
+    column, objects, _ = run_default(frames, None, None, detframe, truth, q_norm, args)
     out |= {f"default_{key}": value for key, value in column.items()}
     kept |= {f"default_{key}": value for key, value in objects.items()}
     if args.equal_iterations:
         recipe = long_default_recipe()
-        column, objects = run_default(frames, recipe, detframe, truth, q_norm, args)
+        column, objects, _ = run_default(frames, None, recipe, detframe, truth, q_norm, args)
         out["default_1000"] = column
         kept |= {f"default_1000_{key}": value for key, value in objects.items()}
     out["pass1_median"] = summary_of(out["pass1_scores"])
@@ -374,10 +376,38 @@ def long_default_recipe():
     )
 
 
-def run_default(frames, recipe, detframe, truth, q_norm, args):
-    """QoraPhase from its autocorrelation support with *recipe* (None: the default), scored like
-    the lab runs. Returns the column and its ``best`` and ``consensus`` objects."""
-    problem = qp.CDI(frames)
+def fixed_support_recipe():
+    """``default_recipe()`` with its shrinkwrap rounds replaced by the same RAAR iterations, so
+    the start support stays fixed, as in the lab's second pass."""
+    return qp.Recipe(qp.RAAR(50), qp.detwin(qp.HIO(20)), qp.RAAR(50), qp.RAAR(400), qp.ER(200))
+
+
+def run_own_consensus(frames, detframe, truth, q_norm, args, out):
+    """The lab's two-pass idea on QoraPhase alone: the default recipe from the autocorrelation
+    support, then a twin-checked consensus of its final supports as the start support of the
+    default recipe and of the fixed-support recipe."""
+    column, _, supports = run_default(frames, None, None, detframe, truth, q_norm, args)
+    out |= {f"default_{key}": value for key, value in column.items()}
+    t = time.perf_counter()
+    fixed, flips = consensus_support(supports, twin_check=True)
+    out["consensus_seconds"] = time.perf_counter() - t
+    out["consensus_support_voxels"] = int(fixed.sum())
+    out["consensus_flipped_supports"] = flips
+    kept = {"consensus_support": fixed}
+    for label, recipe in (("shrinkwrap", None), ("fixed", fixed_support_recipe())):
+        column, objects, _ = run_default(frames, fixed, recipe, detframe, truth, q_norm, args)
+        out[f"own_consensus_{label}"] = column
+        kept |= {f"own_consensus_{label}_{key}": value for key, value in objects.items()}
+    if args.keep:
+        np.savez_compressed(args.out / f"{out['case']}-own-consensus.npz", **kept)
+    return out
+
+
+def run_default(frames, support, recipe, detframe, truth, q_norm, args):
+    """QoraPhase from *support* (None: its autocorrelation support) with *recipe* (None: the
+    default), scored like the lab runs. Returns the column, its ``best`` and ``consensus``
+    objects, and the final supports."""
+    problem = qp.CDI(frames, support=support)
     t = time.perf_counter()
     ens = problem.reconstruct(recipe, starts=args.seeds, seed=args.seed, batch=args.batch)
     jax.block_until_ready(ens[0].object)
@@ -396,7 +426,7 @@ def run_default(frames, recipe, detframe, truth, q_norm, args):
         "median": summary_of(rows),
     }
     objects = {"best": np.asarray(ens[best].object), "consensus": np.asarray(ens[agreed].object)}
-    return column, objects
+    return column, objects, [np.asarray(r.support) for r in ens]
 
 
 def main():
@@ -417,6 +447,12 @@ def main():
         "--equal-iterations",
         action="store_true",
         help="also run QoraPhase for 1000 iterations, the lab's count",
+    )
+    parser.add_argument(
+        "--own-consensus",
+        action="store_true",
+        help="skip the lab recipe; restart QoraPhase from a twin-checked consensus of its own "
+        "final supports, with and without shrinkwrap",
     )
     args = parser.parse_args()
     if args.seeds % args.batch or args.pass2 > args.batch and args.pass2 % args.batch:
