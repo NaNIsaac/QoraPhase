@@ -30,7 +30,10 @@ against the unwindowed data for every iterate; a seed is chosen by each.
 QoraPhase runs ``default_recipe()`` from its autocorrelation support, 20 starts, and reports
 ``Ensemble.best`` and ``Ensemble.consensus``.
 
-Output: ``DIR/<case>.json`` with every score, and ``DIR/summary.md``.
+``--equal-iterations`` adds QoraPhase at the lab's 1000 iterations (``long_default_recipe``), and
+``--keep`` saves the chosen objects for figures.
+
+Output: ``DIR/<case>.json`` with every score; with ``--keep``, ``DIR/<case>-objects.npz``.
 """
 
 import argparse
@@ -291,8 +294,8 @@ def summary_of(rows):
 
 
 def prtf_resolution(objects, intensity):
-    """Crossing of 1/e in cycles per pixel (0 when the first shell is already below it) and the
-    curve, rounded."""
+    """Crossing of 1/e in cycles per pixel (nan when the curve never drops below it, 0 when the
+    first shell is already below) and the curve, rounded."""
     curve = qp.prtf(list(objects), intensity, upsample=10)
     return {
         "crossing": float(curve.crossing),
@@ -308,6 +311,8 @@ def run_case(case, detframe, args):
     raw = np.sqrt(np.clip(frames, 0, None))
     cut = np.where(raw <= 1, 0, raw)
     out = {"case": case.name, "shape": list(frames.shape), "seeds": args.seeds}
+    if args.own_consensus:
+        return run_own_consensus(frames, detframe, truth, q_norm, args, out)
 
     t = time.perf_counter()
     start = auto_support(cut)
@@ -321,6 +326,7 @@ def run_case(case, detframe, args):
     out["pass1_scores"] = scores(detframe, objects, truth, q_norm)
     out["pass1_prtf_px"] = prtf_resolution(objects, frames)
 
+    kept = {}
     for twin_check in (False, True):
         label = "twin_checked" if twin_check else "lab"
         fixed, flips = consensus_support(supports, twin_check)
@@ -341,23 +347,86 @@ def run_case(case, detframe, args):
             "prtf": prtf_resolution(objects2, frames),
         }
 
-    problem = qp.CDI(frames)
-    t = time.perf_counter()
-    ens = problem.reconstruct(None, starts=args.seeds, seed=args.seed, batch=args.batch)
-    jax.block_until_ready(ens[0].object)
-    out["default_seconds"] = time.perf_counter() - t
-    rows = scores(detframe, [r.object for r in ens], truth, q_norm)
-    out["default_scores"] = rows
-    out["default_error"] = [r.error for r in ens]
-    out["default_best"] = rows[ens.ranking[0]]
-    out["default_consensus"] = rows[
-        min(range(len(ens)), key=ens.spread.__getitem__) if len(ens) >= 3 else ens.ranking[0]
-    ]
-    out["default_support_voxels"] = [int(np.asarray(r.support).sum()) for r in ens]
-    out["default_prtf_px"] = prtf_resolution([r.object for r in ens], frames)
+        if args.keep:
+            kept[f"lab_{label}"] = objects2[chosen["lab"]]
+
+    column, objects, _ = run_default(frames, None, None, detframe, truth, q_norm, args)
+    out |= {f"default_{key}": value for key, value in column.items()}
+    kept |= {f"default_{key}": value for key, value in objects.items()}
+    if args.equal_iterations:
+        recipe = long_default_recipe()
+        column, objects, _ = run_default(frames, None, recipe, detframe, truth, q_norm, args)
+        out["default_1000"] = column
+        kept |= {f"default_1000_{key}": value for key, value in objects.items()}
     out["pass1_median"] = summary_of(out["pass1_scores"])
-    out["default_median"] = summary_of(rows)
+    if args.keep:
+        np.savez_compressed(args.out / f"{case.name}-objects.npz", **kept)
     return out
+
+
+def long_default_recipe():
+    """``default_recipe()`` stretched to the lab's 1000 iterations: the eight shrinkwrap rounds
+    run RAAR(85) instead of RAAR(50), so the support is still updated eight times."""
+    return qp.Recipe(
+        qp.RAAR(50),
+        qp.detwin(qp.HIO(20)),
+        qp.RAAR(50),
+        qp.repeat(8, qp.RAAR(85), qp.Shrinkwrap()),
+        qp.ER(200),
+    )
+
+
+def fixed_support_recipe():
+    """``default_recipe()`` with its shrinkwrap rounds replaced by the same RAAR iterations, so
+    the start support stays fixed, as in the lab's second pass."""
+    return qp.Recipe(qp.RAAR(50), qp.detwin(qp.HIO(20)), qp.RAAR(50), qp.RAAR(400), qp.ER(200))
+
+
+def run_own_consensus(frames, detframe, truth, q_norm, args, out):
+    """The lab's two-pass idea on QoraPhase alone: the default recipe from the autocorrelation
+    support, then a twin-checked consensus of its final supports as the start support of the
+    default recipe and of the fixed-support recipe."""
+    column, _, supports = run_default(frames, None, None, detframe, truth, q_norm, args)
+    out |= {f"default_{key}": value for key, value in column.items()}
+    t = time.perf_counter()
+    fixed, flips = consensus_support(supports, twin_check=True)
+    out["consensus_seconds"] = time.perf_counter() - t
+    out["consensus_support_voxels"] = int(fixed.sum())
+    out["consensus_flipped_supports"] = flips
+    kept = {"consensus_support": fixed}
+    for label, recipe in (("shrinkwrap", None), ("fixed", fixed_support_recipe())):
+        column, objects, _ = run_default(frames, fixed, recipe, detframe, truth, q_norm, args)
+        out[f"own_consensus_{label}"] = column
+        kept |= {f"own_consensus_{label}_{key}": value for key, value in objects.items()}
+    if args.keep:
+        np.savez_compressed(args.out / f"{out['case']}-own-consensus.npz", **kept)
+    return out
+
+
+def run_default(frames, support, recipe, detframe, truth, q_norm, args):
+    """QoraPhase from *support* (None: its autocorrelation support) with *recipe* (None: the
+    default), scored like the lab runs. Returns the column, its ``best`` and ``consensus``
+    objects, and the final supports."""
+    problem = qp.CDI(frames, support=support)
+    t = time.perf_counter()
+    ens = problem.reconstruct(recipe, starts=args.seeds, seed=args.seed, batch=args.batch)
+    jax.block_until_ready(ens[0].object)
+    seconds = time.perf_counter() - t
+    rows = scores(detframe, [r.object for r in ens], truth, q_norm)
+    best = ens.ranking[0]
+    agreed = min(range(len(ens)), key=ens.spread.__getitem__) if len(ens) >= 3 else best
+    column = {
+        "seconds": seconds,
+        "scores": rows,
+        "error": [r.error for r in ens],
+        "best": rows[best],
+        "consensus": rows[agreed],
+        "support_voxels": [int(np.asarray(r.support).sum()) for r in ens],
+        "prtf_px": prtf_resolution([r.object for r in ens], frames),
+        "median": summary_of(rows),
+    }
+    objects = {"best": np.asarray(ens[best].object), "consensus": np.asarray(ens[agreed].object)}
+    return column, objects, [np.asarray(r.support) for r in ens]
 
 
 def main():
@@ -368,6 +437,23 @@ def main():
     parser.add_argument("--pass2", type=int, default=PASS2_SEEDS)
     parser.add_argument("--batch", type=int, default=5)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--keep",
+        action="store_true",
+        help="save the chosen lab objects and QoraPhase's best and consensus objects to "
+        "DIR/<case>-objects.npz",
+    )
+    parser.add_argument(
+        "--equal-iterations",
+        action="store_true",
+        help="also run QoraPhase for 1000 iterations, the lab's count",
+    )
+    parser.add_argument(
+        "--own-consensus",
+        action="store_true",
+        help="skip the lab recipe; restart QoraPhase from a twin-checked consensus of its own "
+        "final supports, with and without shrinkwrap",
+    )
     args = parser.parse_args()
     if args.seeds % args.batch or args.pass2 > args.batch and args.pass2 % args.batch:
         raise SystemExit("--seeds and --pass2 must be multiples of --batch, or --pass2 <= --batch")
