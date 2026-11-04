@@ -19,8 +19,10 @@ seed-choice rules). Without noise it gave 0.048 rad against 0.11–0.16 rad, and
 0.042 and 0.061 rad against 0.21–0.30 and 0.19–0.29 rad. Of the 80 default starts over the four
 cases, 79 had a lower phase error than every second-pass run of the lab recipe on the same case.
 A twin check in the lab's support averaging improved its output in every case. Restarting
-QoraPhase from a twin-checked consensus of its own 20 final supports did not improve on the
-default, with the support held fixed or with shrinkwrap. The lab outputs are single runs, and
+QoraPhase from a twin-checked consensus of its own 20 final supports gave no consistent
+improvement on the default: with the support held fixed the noiseless median was lower (0.041
+against 0.048 rad) at the cost of four runs at 0.09–0.27 rad, and there was no gain at 10⁵
+photons or with shrinkwrap. The lab outputs are single runs, and
 with a different jax release single runs moved by up to 0.19 rad at fixed seeds. With one
 particle shape and one noise realisation per case, these results indicate a direction, not a
 general ranking.
@@ -175,7 +177,10 @@ set of runs was also computed (`qp.prtf`, 1/e crossing).
 Because the ramp is removed, these scores do not see an error in the object's linear phase
 term, that is, in a homogeneous strain. A wrong ramp would move the diffraction pattern of
 $\hat\rho$ against that of $\rho$. That offset, centroid to centroid, was at most 0.053
-voxels in every run, so the removed ramp is a few hundredths of a radian across the particle.
+voxels in every run. An offset of $\delta$ voxels on an axis of $N$ voxels is a ramp of
+$2\pi\delta L/N$ across a particle $L$ voxels long, so the removed ramp is at most about 0.04
+rad across the particle along the 128-pixel detector axes and about 0.08 rad along the 61-frame
+rocking axis.
 
 ### 2.5 Software, hardware and reproducibility
 
@@ -198,7 +203,8 @@ scored with whole-voxel registration, which adds jitter of its own). The two env
 therefore produce different random draws or different floating-point paths from the same seed,
 and a single run is not a reproducible quantity across versions. This applies to the lab
 recipe's outputs, which are single chosen runs: at 1.2 rad and 10⁵ photons its three pass-2
-seeds spanned 0.185–0.288 rad on 2026-11-02 and 0.274–0.351 rad in the locked environment. The
+seeds on the twin-checked support spanned 0.185–0.288 rad on 2026-11-02 and 0.274–0.351 rad in
+the locked environment (whole-voxel scores, so not comparable with Table 1). The
 ranking of the methods was the same in both. All numbers below are from the locked environment.
 
 ## 3 Results
@@ -274,9 +280,12 @@ alignment to the truth. Top: amplitude scaled to each object's maximum. Bottom: 
 amplitude exceeds 0.3. The lab outputs are the pass-2 seeds chosen by the lab rule.
 
 **Spread.** The default ensembles are narrow: interquartile ranges of 0.006–0.014 rad, and every
-start within 0.025–0.072 rad except one at 3 rad (0.707 rad). That start ended at a Fourier
-error of 0.0745, inside the range of the set (0.0730–0.0750), so $E_F$ does not flag it;
-`best` and `consensus` both avoided it. Its cause was not investigated.
+start within 0.025–0.072 rad except one at 3 rad (0.707 rad). That start fails on every metric
+(IoU 0.74, amplitude NRMSE 0.43, complex NRMSE 0.61) with a normal support of 1975 voxels, and
+it ended at a Fourier error of 0.0745, inside the range of the set (0.0730–0.0750), so $E_F$
+does not flag it; `best` and `consensus` both avoided it. Its cause was not investigated: a
+partially twinned solution and a misregistration by the scorer (a wrong integer peak, which the
+sub-voxel search within ±1 voxel cannot correct) are both possible.
 
 **Twin convergence.** In the lab's support sum, the pass-1 supports that matched the first one
 better after point reflection were 8 of 20 (1.2 rad, 10⁵), 4 of 20 (1.2 rad, noiseless) and 11
@@ -300,7 +309,8 @@ lab recipe is not an effect of the iteration count.
 **Own consensus.** When QoraPhase's own 20 final supports were combined, 8 of 20 matched the
 first one better after point reflection at both doses: QoraPhase's runs also end in either twin
 orientation. The scores do not see this, because the alignment picks the twin. The consensus
-support had 2140 (10⁵) and 2380 (noiseless) voxels, against 1970–2043 for single final supports.
+support had 2140 (10⁵) and 2380 (noiseless) voxels, against 1980–2041 for the single final
+supports it was built from.
 
 - *Support fixed.* At 10⁵ photons the ensemble was no better than the default (median 0.059
   against 0.055 rad, IQR 0.010 against 0.014 rad). Without noise 16 of 20 runs reached
@@ -319,7 +329,7 @@ support had 2140 (10⁵) and 2380 (noiseless) voxels, against 1970–2043 for si
 | QoraPhase final (default) | 1984–2041 (1.2 rad, 10⁵), 1980–2031 (1.2 rad, noiseless), 1960–2051 (0 rad), 1950–2035 (3 rad) |
 | Consensus of QoraPhase's final supports | 2140 (1.2 rad, 10⁵), 2380 (1.2 rad, noiseless) |
 
-**Fourier error.** QoraPhase's $E_F$ ended at 0.079–0.080 (1.2 rad, 10⁵), 0.049–0.051
+**Fourier error.** QoraPhase's $E_F$ ended at 0.078–0.080 (1.2 rad, 10⁵), 0.049–0.051
 (noiseless), 0.079–0.081 (0 rad) and 0.073–0.075 (3 rad).
 
 **PRTF.** The PRTF stayed above 1/e to the array edge for every set except lab pass 1 at 10⁵
@@ -348,7 +358,7 @@ including the twin-checked ones, and `best` and `consensus` did in every case. R
 for the lab's 1000 iterations changes little, so the difference is not one of compute.
 
 Registration matters for these numbers. Aligned only to whole voxels, the same reconstructions
-scored up to three times as high (0.186 against 0.055 rad for one noiseless own-consensus
+scored up to 3.4 times as high (0.186 against 0.055 rad for one noiseless own-consensus
 output, 0.115 against 0.058 rad for `best` at 3 rad), and the noiseless default ensemble looked
 bimodal (IQR 0.062–0.148 rad); registered to 0.01 voxel it
 spans 0.033–0.058 rad. [Default recipe on simulated BCDI data](../bcdi-support.md) reports two
@@ -405,8 +415,8 @@ equal iterations) against 0.17–0.26 rad at 10⁵ photons and 0.048 rad against
 without noise; at 0 and 3 rad 0.042 and 0.061 rad against 0.21–0.30 and 0.19–0.29 rad. All but
 one of the 80 default starts also beat every lab second-pass run. The lab's support averaging
 needs a twin check, which helped in every case but left it well behind. A lab-style second pass
-on a consensus of QoraPhase's own supports did not improve on the default. Scores of this kind
-need sub-voxel registration: whole-voxel alignment inflated them by up to a factor of three and
+on a consensus of QoraPhase's own supports gave no consistent improvement on the default. Scores of this kind
+need sub-voxel registration: whole-voxel alignment inflated them by up to a factor of 3.4 and
 made a narrow ensemble look bimodal. More shapes and noise draws are needed before the result
 can be generalised.
 
