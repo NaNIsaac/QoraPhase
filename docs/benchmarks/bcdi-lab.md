@@ -361,8 +361,9 @@ Registration matters for these numbers. Aligned only to whole voxels, the same r
 scored up to 3.4 times as high (0.186 against 0.055 rad for one noiseless own-consensus
 output, 0.115 against 0.058 rad for `best` at 3 rad), and the noiseless default ensemble looked
 bimodal (IQR 0.062–0.148 rad); registered to 0.01 voxel it
-spans 0.033–0.058 rad. [Default recipe on simulated BCDI data](../bcdi-support.md) reports two
-groups of runs with the same whole-voxel scorer, and should be rechecked.
+spans 0.033–0.058 rad. [Default recipe on simulated BCDI data](../bcdi-support.md) reported two
+groups of runs with the same whole-voxel scorer; rescored with this registration, they were an
+artefact of it.
 
 Two properties of the lab recipe plausibly account for part of its deficit (inference):
 
