@@ -40,7 +40,7 @@ from scipy.io import loadmat, savemat
 from qoraphase.postprocess import _fourier_shift, flip_about_origin, register
 
 sys.path.insert(0, str(Path(__file__).parent))
-import bcdi_lab as bl  # noqa: E402
+import bcdi_lab as bl
 
 PASS1_SEEDS = 20
 PASS2_SEEDS = 3
@@ -63,7 +63,7 @@ def quoted(path):
 def matlab(args, call):
     here = Path(__file__).parent
     command = f"addpath({quoted(args.engine)}); addpath({quoted(here)}); {call}"
-    code = subprocess.run([args.matlab, "-batch", command]).returncode
+    code = subprocess.run([args.matlab, "-batch", command], check=False).returncode
     if code:
         raise SystemExit(f"MATLAB exited {code}: {call}")
 
@@ -190,7 +190,7 @@ def score(case, work, args, part):
             "flipped": int(loadmat(work / f"aligned_{v}.mat")["flipped"].ravel()[0]),
         }
     version = subprocess.run(
-        [args.matlab, "-batch", "disp(version)"], capture_output=True, text=True
+        [args.matlab, "-batch", "disp(version)"], check=False, capture_output=True, text=True
     )
     result["environment"] = {
         "platform": platform.platform(),
