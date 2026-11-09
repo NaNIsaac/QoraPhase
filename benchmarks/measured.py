@@ -267,7 +267,8 @@ def main():
                 f"- lab MATLAB reruns (`benchmarks/measured_driver.m`): the reference's saved "
                 f"parameters, MATLAB `rng` seeds 0 to {len(results[lab][0]) - 1}, the engine's GPU "
                 f"path as in the saved run; engine chi median {chi:.4f}; each run cut to its final "
-                f"support; its time column is per run on the GPU, not comparable with the CPU rows"
+                f"support; its time column is per run on the GPU, not comparable with the CPU rows; "
+                f"which of them the saved reconstruction resembles is in {args.label}: lab reruns"
             ),
         ]
     else:
