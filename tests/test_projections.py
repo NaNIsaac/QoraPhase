@@ -9,6 +9,7 @@ import qoraphase as qp
 from qoraphase.operators.modulus import modulus_project
 from qoraphase.operators.support import (
     autocorrelation_support,
+    fill_along_rays,
     masked_autocorrelation_support,
     support_project,
 )
@@ -114,15 +115,41 @@ def test_masked_autocorrelation_support_survives_a_centre_hole(sigma):
     assert support.sum() < new.sum() < 0.5 * new.size
 
 
-@pytest.mark.xfail(strict=True, reason="factor and sigma are not tuned to hole size (#38)")
-def test_masked_autocorrelation_support_with_a_small_hole_under_a_large_object():
-    """The ladder benchmark geometry: a 40 px triangle and a 4 px hole. The estimate comes out
-    smaller than the object, so a reconstruction cannot start from it."""
-    _, support, intensity = make_data(shape=(128, 128), m=40)
-    mask = centre_hole(intensity.shape, 4)
+@pytest.mark.parametrize(
+    ("shape", "m", "radius", "photons"),
+    [
+        ((128, 128), 40, 4, None),  # the ladder benchmark geometry
+        ((128, 128), 40, 2, None),
+        ((128, 128), 40, 6, None),
+        ((128, 128), 40, 4, 1e6),
+        ((128, 128), 40, 16, 1e4),
+        ((64, 64, 64), 24, 4, None),
+    ],
+)
+def test_masked_autocorrelation_support_with_a_small_hole_under_a_large_object(
+    shape, m, radius, photons
+):
+    """A hole small against the object leaves a near-zero ring inside the autocorrelation; the
+    median cut alone split the inside off and came out smaller than the object (#38)."""
+    _, support, intensity = make_data(shape=shape, m=m)
+    if photons:
+        rng = np.random.default_rng(0)
+        intensity = rng.poisson(intensity / intensity.max() * photons).astype(float)
+    mask = centre_hole(intensity.shape, radius)
     holed = np.where(mask, 0.0, intensity)
     new = np.asarray(masked_autocorrelation_support(jnp.asarray(holed), jnp.asarray(mask)))
     assert fits_somewhere(new, support)
+    assert new.mean() < 0.5
+
+
+def test_fill_along_rays_adds_what_lies_between_the_centre_and_the_region():
+    ring = centre_hole((65, 65), 20) & ~centre_hole((65, 65), 14)
+    filled = np.asarray(fill_along_rays(jnp.asarray(ring)))
+    assert np.array_equal(filled, centre_hole((65, 65), 20))
+    spot = np.zeros((65, 65), bool)
+    spot[32, 52] = True
+    line = np.asarray(fill_along_rays(jnp.asarray(spot)))
+    assert line[32, 32:53].all() and line.sum() == 21
 
 
 def test_masked_autocorrelation_support_refuses_an_empty_support():

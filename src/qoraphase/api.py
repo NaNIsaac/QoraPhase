@@ -98,7 +98,8 @@ def reconstruct(
         intensity: measured intensity, center-origin, 2D or 3D.
         support: boolean, ``True`` inside the object.  ``None`` derives an
             autocorrelation support: when *mask* covers the centre of the
-            pattern, the blurred autocorrelation above 3 times its median
+            pattern, the blurred autocorrelation above 2 times its median,
+            filled outward along rays from the centre
             (:func:`~qoraphase.operators.support.masked_autocorrelation_support`,
             which states where it was tested), otherwise above 0.1 times its
             maximum.
