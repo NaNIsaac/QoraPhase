@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+import jax
 import jax.numpy as jnp
 
 from .shrinkwrap import gaussian_blur
@@ -54,7 +55,7 @@ def autocorrelation_support(intensity: jnp.ndarray, threshold: float = 0.1) -> j
 def masked_autocorrelation_support(
     intensity: jnp.ndarray,
     mask: jnp.ndarray,
-    factor: float = 3.0,
+    factor: float = 2.0,
     sigma: float | None = None,
 ) -> jnp.ndarray:
     """Default support when the mask covers the centre of the pattern.
@@ -64,19 +65,24 @@ def masked_autocorrelation_support(
     frame, and a fraction of the maximum keeps only that (#38).  Instead the
     blurred magnitude is cut at *factor* times its median, which is the
     background level as long as the autocorrelation covers less than half the
-    array.  *sigma* defaults to 1 % of the mean side, at least 1 pixel.
+    array.  *sigma* defaults to 2.3 % of the mean side, at least 1 pixel.
 
-    This was shown to work in a narrow regime only: on two CXIDB patterns with
-    sigma 10 to 13 px (the area changed by under 6 % for sigma from 8 to 24 px),
-    and on a synthetic 20 px triangle in a 128 px array with a 6 px hole, where
-    0.5 px fails and 1 to 8 px contain the object.  It does not contain the
-    object when the hole is small against the object: a 40 px triangle in a
-    128 px array with a 4 px hole, as on the ladder benchmark, comes out
-    smaller than the object, because removing the lowest frequencies leaves a
-    near-zero ring inside the autocorrelation that the cut splits off.  The
-    factor and sigma are not tuned against hole size (#38), and there is no 3D
-    test: in 3D at low oversampling the autocorrelation can fill more than half
-    the array and the median is no longer the background.
+    The cut alone is not enough when the hole is small against the object:
+    removing frequencies inside a radius r subtracts a smooth component about
+    N / r wide, which leaves a near-zero ring inside the autocorrelation, and
+    the cut splits the inside off.  An autocorrelation support holds the
+    origin and reaches out along every direction, so every pixel with a cut
+    pixel further out on its ray from the centre is added back.
+
+    Measured on synthetic triangles and tetrahedra (12 to 80 px in 128 and
+    256 px arrays, 16 to 24 px in 64 px cubes, holes of 2 to 16 px, noiseless
+    and 1e4 to 1e6 peak photons): the estimate contains the object in every
+    case, at 3.5 to 90 times its size and at most 38 % of the array. On the two
+    CXIDB patterns of ``benchmarks/cxidb.py`` it holds all of the previous
+    estimate (3 times the median at 1 % of the side, no ray fill) at about
+    twice its area.  Not tested on a real 3D pattern; at low oversampling the
+    autocorrelation can fill more than half the array and the median is no
+    longer the background.
 
     Raises:
         ValueError: if no pixel passes the cut, for example when *sigma* is
@@ -85,15 +91,35 @@ def masked_autocorrelation_support(
     usable = jnp.where(mask, 0.0, intensity)
     ac = jnp.abs(jnp.fft.fftshift(jnp.fft.ifftn(jnp.fft.ifftshift(usable))))
     if sigma is None:
-        sigma = max(1.0, 0.01 * sum(intensity.shape) / intensity.ndim)
+        sigma = max(1.0, 0.023 * sum(intensity.shape) / intensity.ndim)
     blurred = gaussian_blur(ac, sigma)
-    support = blurred > factor * jnp.median(blurred)
-    if not support.any():
+    cut = blurred > factor * jnp.median(blurred)
+    if not cut.any():
         raise ValueError(
             f"empty support: no pixel of the blurred autocorrelation (sigma={sigma}) "
             f"exceeds {factor} times its median; pass a support or a smaller sigma"
         )
-    return support
+    return fill_along_rays(cut)
+
+
+def fill_along_rays(region: jnp.ndarray, step: float = 0.5) -> jnp.ndarray:
+    """*region* and every pixel that has a *region* pixel further out on its ray from the
+    centre (index ``n // 2`` per axis), sampled every *step* pixels."""
+    shape = jnp.array(region.shape).reshape(-1, *[1] * region.ndim)
+    centre = (shape // 2).astype(jnp.float32)
+    offset = jnp.indices(region.shape, dtype=jnp.float32) - centre
+    radius = jnp.maximum(jnp.sqrt(jnp.sum(offset**2, axis=0)), 1e-6)
+    steps = int(jnp.ceil(jnp.sqrt(sum(n**2 for n in region.shape)) / 2 / step))
+
+    def further(k, filled):
+        position = jnp.rint(centre + offset * (1 + k * step / radius)).astype(jnp.int32)
+        inside = jnp.all((position >= 0) & (position < shape), axis=0)
+        index = tuple(jnp.where(inside, p, 0) for p in position)
+        return filled | (inside & region[index])
+
+    # the centre lies on every ray, and has no direction of its own to march along
+    start = region.at[tuple(n // 2 for n in region.shape)].set(region.any())
+    return jax.lax.fori_loop(1, steps + 1, further, start)
 
 
 def centre_masked(mask: jnp.ndarray) -> bool:

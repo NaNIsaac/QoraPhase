@@ -102,7 +102,7 @@ ENTRIES = {
         ),
         (
             "the library's own, `CDI(intensity, mask=mask)`: with the centre masked, the blurred "
-            "autocorrelation above 3 times its median; a fraction of its maximum keeps only the "
+            "autocorrelation above 2 times its median, filled outward along rays; a fraction of its maximum keeps only the "
             "cross of the window-frame streaks (#38)"
         ),
         flash_schedule,
@@ -132,7 +132,7 @@ ENTRIES = {
         ),
         (
             "the library's own, `CDI(intensity, mask=mask)`: with the centre masked, the blurred "
-            "autocorrelation above 3 times its median; the paper's 4 % of the maximum keeps 51 px "
+            "autocorrelation above 2 times its median, filled outward along rays; the paper's 4 % of the maximum keeps 51 px "
             "here, the failure of #38"
         ),
         als_schedule,

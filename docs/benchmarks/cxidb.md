@@ -13,7 +13,7 @@ Status: not reproduced. The paper schedule and `default_recipe()` end on a cross
 - device cpu:0, x64 off
 - Windows-11-10.0.26300-SP0, processor AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD
 - preparation: background (median of a 64 px border) subtracted, saturated pixels and their neighbours masked, the mirror hole masked to 45 px around the centre of symmetry (610.5, 688.5); cropped to 1220 x 1304 about the centre of symmetry, 9133 pixels masked; start support 172143 px
-- start support for all three recipes: the blurred autocorrelation (sigma 12 px) above 3 times its median, the rule that is now `masked_autocorrelation_support` (run before the move, with a benchmark-local copy); a fraction of its maximum keeps only the cross of the window-frame streaks (#38)
+- start support for all three recipes: the blurred autocorrelation (sigma 12 px) above 3 times its median, the first rule of `masked_autocorrelation_support` (run before the move, with a benchmark-local copy; the library now cuts at 2 times the median and fills along rays, #38); a fraction of its maximum keeps only the cross of the window-frame streaks (#38)
 - paper schedule: 3500 HIO iterations (beta 0.9) with the paper's support updates, and 200 ER; HIO, start support kept: the same iterations with no support update; QoraPhase default: `default_recipe()`, 720 iterations
 - PRTF over the aligned starts (shift to 1/10 px, phase, twin); its 1/e crossing as a fraction of the frequency at the edge of the detector
 
@@ -38,7 +38,7 @@ Status: not reproduced. The paper schedule ends on a small blob and `default_rec
 - device cpu:0, x64 off
 - Windows-11-10.0.26300-SP0, processor AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD
 - preparation: as deposited (background already subtracted); the zero pixels masked; cropped to 1024 x 1020 about the centre of symmetry (511.5, 510.5), 56479 pixels masked; start support 94173 px
-- start support for all three recipes: the blurred autocorrelation (sigma 12 px) above 3 times its median, the rule that is now `masked_autocorrelation_support` (run before the move, with a benchmark-local copy); the paper's 4 % of the maximum keeps 51 px here, the failure of #38
+- start support for all three recipes: the blurred autocorrelation (sigma 12 px) above 3 times its median, the first rule of `masked_autocorrelation_support` (run before the move, with a benchmark-local copy; the library now cuts at 2 times the median and fills along rays, #38); the paper's 4 % of the maximum keeps 51 px here, the failure of #38
 - paper schedule: 2000 HIO iterations (beta 0.9) with the paper's support updates, and 200 ER; HIO, start support kept: the same iterations with no support update; QoraPhase default: `default_recipe()`, 720 iterations
 - PRTF over the aligned starts (shift to 1/10 px, phase, twin); its 1/e crossing as a fraction of the frequency at the edge of the detector
 
