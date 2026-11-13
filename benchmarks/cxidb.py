@@ -110,7 +110,7 @@ ENTRIES = {
         (
             "not reproduced. The paper schedule and `default_recipe()` end on a cross through the "
             "centre; HIO with the start support kept fits the data, but its starts do not agree "
-            "with each other. Suspected causes in #38"
+            "with each other. The larger start support of #38 does not change this (#59)"
         ),
     ),
     28: Entry(
@@ -138,8 +138,8 @@ ENTRIES = {
         als_schedule,
         2000,
         (
-            "not reproduced. The paper schedule ends on a small blob and `default_recipe()` on a "
-            "cross through the centre, not the two clusters of the paper; HIO with the start "
+            "not reproduced. The paper schedule ends on a thin vertical line and `default_recipe()` "
+            "on a cross through the centre, not the two clusters of the paper (#59); HIO with the start "
             "support kept fits the data, but its starts do not agree with each other. The "
             "paper's 4 % autocorrelation support keeps 51 px (#38)"
         ),
