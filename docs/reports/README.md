@@ -21,11 +21,12 @@ box; the question, result and limits are given here instead.
 
 | Date | Report | Result | Status |
 |---|---|---|---|
+| 2026-11-04 | [Lab ER/HIO recipe on simulated BCDI data](../benchmarks/bcdi-lab.md) | On simulated 3D data of one particle, registered to the truth to 0.01 voxel, median phase RMSE over 20 starts 0.055 rad (10⁵ photons) and 0.048 rad (noiseless) for the default recipe, against 0.17–0.26 and 0.11–0.16 rad for a re-implemented lab MATLAB recipe; at 0 and 3 rad peak phase 0.042 and 0.061 rad against 0.21–0.30 and 0.19–0.29 rad. A second pass on a consensus of QoraPhase's own supports gives no consistent improvement on the default. Physics check done, two independent passes. | checked |
 | 2026-10-27 | [Public measured data (CXIDB)](../benchmarks/cxidb.md) | Neither published reconstruction (CXIDB 3, CXIDB 28) is reproduced yet ([#38](https://github.com/NaNIsaac/QoraPhase/issues/38)). Physics check needed. | checked, generated (`benchmarks/cxidb.py`) |
 | 2026-10-27 | [Measured data](../benchmarks/measured.md) | On one measured 3D dataset, Fourier residual 0.310 for the best of 10 starts against 0.315 for the lab MATLAB reconstruction; mutual error 0.235. Physics check needed. | checked, generated (`benchmarks/measured.py`) |
 | 2026-10-27 | [Benchmark ladder](../benchmarks/ladder.md) | With the exact support every stage succeeds in 20 of 20 starts; with a dilated or autocorrelation support, 0 to 10 of 20. | checked, generated (`benchmarks/ladder.py`) |
 | 2026-10-25 | [Where reconstructions spend their time](../perf.md) | Time is the iteration count times one modulus projection; the FFT and its shift sandwich take 77-97 % of a step at 256² and up. | checked |
-| 2026-10-23 | [Default recipe on simulated BCDI data: support, not stagnation](../bcdi-support.md) | The 0.05 Fourier error floor is set by the final support, not stagnation; the default shrinkwrap threshold stays at 0.3. | checked |
+| 2026-10-23 | [Default recipe on simulated BCDI data: support, not stagnation](../bcdi-support.md) | The 0.05 Fourier error floor is set by the final support, not stagnation; rescored with sub-voxel registration, the two phase groups were an artefact; the default shrinkwrap threshold stays at 0.3. At 3 rad, symmetric particles often end above 0.15 rad; the level of the Fourier error does not flag them across cases, but within one ensemble it does. Physics check needed. | draft |
 
 Details for the generated reports:
 

@@ -1,81 +1,30 @@
-# QoraPhase
+# Overview
 
-QoraPhase recovers a complex object (amplitude and phase) from a measured coherent diffraction
-intensity, in 2D or 3D, on CPU or GPU through JAX. You pass a centred intensity array; it returns
-the reconstruction. Reading detector files, BCDI geometry and strain are left to other tools
-([CXD](https://github.com/NaNIsaac/CXD), [QoraGeom](https://github.com/NaNIsaac/QoraGeom)).
+A diffraction detector measures **how bright each part of a pattern is**, but
+not the phase of the scattered X-ray wave. Without that phase, the pattern
+cannot simply be Fourier-transformed into an image of the object. This is the
+*phase-retrieval problem* in coherent diffraction imaging (CDI).
 
-The algorithms are the standard iterative ones (ER, HIO, RAAR, shrinkwrap). What QoraPhase adds is
-that they are small pieces you compose into a recipe, run from many random starts at once with
-`vmap`, and check: `qp.diagnose` looks at the measurement before you reconstruct, and
-`Ensemble.align`, `qp.prtf` and agreement between starts look at the result after.
+**QoraPhase estimates a possible object from the measured intensity.** It
+iterates between diffraction-space measurements and real-space constraints
+using algorithms such as ER, HIO, RAAR, and shrinkwrap. The result is a
+complex-valued object: amplitude and phase. It accepts centred 2D or 3D
+NumPy/JAX arrays, and can run on CPU or GPU.
 
-## Install
+A reconstruction that matches the measured intensity is **not automatically
+the correct or unique object**. The synthetic example and measured-data
+checks below show both what the code can do and what remains unresolved.
 
-Python 3.12 or later.
+![Simulated object, its diffraction intensity, and the reconstruction](https://raw.githubusercontent.com/NaNIsaac/QoraPhase/main/docs/reconstruction.png)
 
-```sh
-uv venv
-uv pip install qoraphase
-```
+A 64×64 simulated object, its noiseless intensity, and the best of 8 random
+starts from `qp.reconstruct(intensity, starts=8)` with no support given (it is
+derived from the autocorrelation and shrinkwrapped). Relative error against the
+true object: 7.9e-7. Script: `examples/readme_figure.py`. This is a recorded synthetic example, not a new measured-data result.
 
-`pip install qoraphase` works as well.
 
-## First run
+## Start here
 
-This needs no data file: it builds a small object, computes the intensity a detector would
-record, and reconstructs from that intensity alone, without being given a support.
+Read [installation](install.md), the [tutorial](tutorial.md) and [array conventions](guides/arrays.md). Then use [recipes](guides/recipes.md), [constraints](guides/constraints.md), [diagnostics](guides/diagnostics.md) and [alignment/PRTF](guides/combining.md).
 
-```python
-import numpy as np
-import qoraphase as qp
-
-# A 64x64 array holding a triangular object with a phase bump
-n, m = 64, 24
-inside = np.indices((m, m)).sum(0) < m
-y, x = np.indices((m, m)) - (m - 1) / 2
-block = inside * np.exp(1j * 1.2 * np.exp(-((x + 4) ** 2 + (y + 4) ** 2) / 30))
-obj = np.zeros((n, n), complex)
-obj[n // 2 - m // 2 : n // 2 + m // 2, n // 2 - m // 2 : n // 2 + m // 2] = block
-
-# Its far-field intensity, centred: this is what a detector records
-intensity = np.abs(np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(obj), norm="ortho"))) ** 2
-
-print(qp.diagnose(intensity))
-ensemble = qp.reconstruct(intensity, starts=8, seed=0)
-best = ensemble.best
-aligned = np.asarray(qp.align_to(best.object, obj))
-print(f"Fourier error {best.error:.1e}")
-print(f"error against the true object {np.linalg.norm(aligned - obj) / np.linalg.norm(obj):.1e}")
-```
-
-The last lines of the output, from qoraphase 0.2.0 on CPU (Windows, Python 3.13):
-
-```
-no warnings
-Fourier error 2.9e-07
-error against the true object 3.0e-06
-```
-
-`qp.align_to` is needed before comparing with the true object, because a reconstruction is only
-determined up to a global phase, a shift and a conjugate flip. With your own data, replace the
-synthetic `intensity` with your array and read the [array conventions](../README.md#array-conventions-read-this-first)
-first: the array is center-origin, it is an intensity and not an amplitude, and `mask=True` marks
-an unusable pixel.
-
-## Where to go next
-
-The README is the full user guide. Its sections, in the order you are likely to need them:
-
-- [Composing a reconstruction](../README.md#composing-a-reconstruction): recipes, `detwin`, shrinkwrap settings.
-- [Multi-start](../README.md#multi-start) and [Combining runs](../README.md#combining-runs): many starts, alignment, averaging, PRTF.
-- [Before you trust a reconstruction](../README.md#before-you-trust-a-reconstruction): `qp.diagnose` and agreement between starts.
-- [Partial coherence](../README.md#partial-coherence), [Phase constraint](../README.md#phase-constraint), [Genetic algorithm](../README.md#genetic-algorithm), [Low-pass resolution progression](../README.md#low-pass-resolution-progression): optional pieces, each with what it did on test data.
-- [Validation](../README.md#validation) and [What this does not do](../README.md#what-this-does-not-do).
-
-On this site:
-
-- [Input contract](input-contract.md): what a detector stack must satisfy before it is passed in, and what stays with the caller.
-- [GPU environment of the benchmark machine](hardware.md): an RTX 5070 under Windows, why JAX runs only on its CPU there, and the options for the GPU.
-- [Default recipe on simulated BCDI data](bcdi-support.md): why the default recipe stops where it does on simulated BCDI data, and what changes that.
-- The Python API page lists every public function and class with its docstring.
+Manual benchmark reproduction is in [genetic algorithms](guides/genetic.md) and [low-pass progression](guides/low-pass.md). Read the [validation limits](guides/validation.md), [report index](reports/README.md) and [release history](https://github.com/NaNIsaac/QoraPhase/releases) before interpreting results. The documentation hub generates API reference pages from the package docstrings.
