@@ -19,8 +19,8 @@ complex-valued object: amplitude and phase. It accepts centred 2D or 3D
 NumPy/JAX arrays, and can run on CPU or GPU.
 
 A reconstruction that matches the measured intensity is **not automatically
-the correct or unique object**. The synthetic example and measured-data
-checks below show both what the code can do and what remains unresolved.
+the correct or unique object**. The synthetic example below shows what the code
+can do; [measured-data checks remain unresolved](docs/benchmarks/cxidb.md).
 
 ![Simulated object, its diffraction intensity, and the reconstruction](https://raw.githubusercontent.com/NaNIsaac/QoraPhase/main/docs/reconstruction.png)
 
