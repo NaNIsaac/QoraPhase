@@ -4,9 +4,38 @@
 
 Estimate a complex object from a coherent diffraction intensity array using composable JAX phase-retrieval recipes.
 
-![Synthetic object, diffraction intensity and reconstruction](docs/reconstruction.png)
+<!-- overview:start -->
+Full documentation: [QoraPhase](https://nanisaac.github.io/docs/qoraphase/).
 
-Recorded synthetic, noiseless 64×64 example, best of 8 starts. A low intensity residual does not establish the correct or unique object; [measured-data checks remain unresolved](docs/benchmarks/cxidb.md).
+A diffraction detector measures **how bright each part of a pattern is**, but
+not the phase of the scattered X-ray wave. Without that phase, the pattern
+cannot simply be Fourier-transformed into an image of the object. This is the
+*phase-retrieval problem* in coherent diffraction imaging (CDI).
+
+**QoraPhase estimates a possible object from the measured intensity.** It
+iterates between diffraction-space measurements and real-space constraints
+using algorithms such as ER, HIO, RAAR, and shrinkwrap. The result is a
+complex-valued object: amplitude and phase. It accepts centred 2D or 3D
+NumPy/JAX arrays, and can run on CPU or GPU.
+
+A reconstruction that matches the measured intensity is **not automatically
+the correct or unique object**. The synthetic example and measured-data
+checks below show both what the code can do and what remains unresolved.
+
+![Simulated object, its diffraction intensity, and the reconstruction](https://raw.githubusercontent.com/NaNIsaac/QoraPhase/main/docs/reconstruction.png)
+
+A 64×64 simulated object, its noiseless intensity, and the best of 8 random
+starts from `qp.reconstruct(intensity, starts=8)` with no support given (it is
+derived from the autocorrelation and shrinkwrapped). Relative error against the
+true object: 7.9e-7. Script: `examples/readme_figure.py`. This is a recorded synthetic example, not a new measured-data result.
+
+
+## Start here
+
+Read [installation](docs/install.md), the [tutorial](docs/tutorial.md) and [array conventions](docs/guides/arrays.md). Then use [recipes](docs/guides/recipes.md), [constraints](docs/guides/constraints.md), [diagnostics](docs/guides/diagnostics.md) and [alignment/PRTF](docs/guides/combining.md).
+
+Manual benchmark reproduction is in [genetic algorithms](docs/guides/genetic.md) and [low-pass progression](docs/guides/low-pass.md). Read the [validation limits](docs/guides/validation.md), [report index](docs/reports/README.md) and [release history](https://github.com/NaNIsaac/QoraPhase/releases) before interpreting results. The documentation hub generates API reference pages from the package docstrings.
+<!-- overview:end -->
 
 ## Install
 
