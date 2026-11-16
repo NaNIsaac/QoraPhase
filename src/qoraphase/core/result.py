@@ -36,7 +36,13 @@ class Reconstruction:
 
     def plot(self, axes=None):
         """Amplitude / phase panels.  3D shows the central slice of each axis."""
-        import matplotlib.pyplot as plt
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError as exc:
+            raise ImportError(
+                "Reconstruction.plot() requires matplotlib; install the optional extra: "
+                "pip install 'qoraphase[plot]' (or uv add 'qoraphase[plot]')"
+            ) from exc
 
         amp, phase = np.asarray(self.amplitude), np.asarray(self.phase)
         if amp.ndim == 2:

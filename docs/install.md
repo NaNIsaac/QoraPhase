@@ -16,10 +16,13 @@ and untested alternatives, not a promise of GPU support on every machine.
 
 ## Development and unreleased features
 
-From a clone of this repository, use `uv sync --python 3.12` and `uv run --python 3.12 pytest`.
-The `examples` dependency group additionally includes PyVista, scikit-image and SciPy;
-install it with `uv sync --group examples` only when an example needs it.
-Low-pass progression and masked-pixel diagnostic corrections are on main after the PyPI 0.2.0
-release. For those, use a source checkout or install `git+https://github.com/NaNIsaac/QoraPhase`.
-Check the [release history](https://github.com/NaNIsaac/QoraPhase/releases) for later published versions.
-
+From a clone of this repository, `uv sync --python 3.12` installs the core and test dependencies;
+pass `--extra plot` to run `Reconstruction.plot()` tests, `examples/`, and `benchmarks/`
+(`uv run --extra plot python examples/readme_figure.py`). The `examples` dependency group
+additionally includes PyVista, scikit-image and SciPy (`uv sync --extra plot --group examples`).
+PyPI 0.2.0 installs `matplotlib` with the core; moving `matplotlib` to the optional `plot` extra
+is on main after 0.2.0 and starts with the next release. Low-pass progression and masked-pixel
+diagnostic corrections are also on main after the PyPI 0.2.0 release. For those, use a source
+checkout or install `git+https://github.com/NaNIsaac/QoraPhase`. Check
+[CHANGELOG](https://github.com/NaNIsaac/QoraPhase/blob/main/CHANGELOG.md) and the
+[release history](https://github.com/NaNIsaac/QoraPhase/releases) for changes and published versions.
