@@ -4,16 +4,31 @@ on:
   push:
     tags:
       - 'v*'
+  # Runs the gates alone, without an upload, to check them off a tag.
+  workflow_dispatch:
 
 jobs:
+  gates:
+    uses: NaNIsaac/.github/.github/workflows/publish-gates.yml@e2bfb9b4aa7820e8efe43afddf2d2308c6069ae3
+    permissions:
+      contents: read
+    with:
+      import-name: qoraphase
+      # the plotting tests need the plot extra, as in ci.yml
+      test-command: uv run --extra plot pytest -q
+
   publish:
+    needs: gates
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: release
     permissions:
       id-token: write  # PyPI Trusted Publishing
       contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
-      - run: uv build
+      # The files the gates checked, not a new build
+      - uses: actions/download-artifact@v8
+        with:
+          name: publish-gates-dist
+          path: dist
       - uses: pypa/gh-action-pypi-publish@release/v1
