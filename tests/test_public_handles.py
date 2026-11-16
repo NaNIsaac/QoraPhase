@@ -1,15 +1,15 @@
 """Public projection handles and plotting."""
 
+import sys
+
 import jax.numpy as jnp
-import matplotlib
 import numpy as np
+import pytest
 from conftest import make_data
 
 import qoraphase as qp
 from qoraphase.operators.modulus import modulus_project
 from qoraphase.operators.support import support_project
-
-matplotlib.use("Agg")
 
 
 def test_modulus_projection_handle_matches_the_function(data, problem):
@@ -36,7 +36,22 @@ def test_every_advertised_symbol_is_importable():
         assert getattr(qp, name) is not None
 
 
+def test_core_runs_without_matplotlib_and_plot_names_extra(data, monkeypatch):
+    monkeypatch.setitem(sys.modules, "matplotlib", None)
+    monkeypatch.setitem(sys.modules, "matplotlib.pyplot", None)
+
+    _, support, intensity = data
+    result = qp.reconstruct(intensity, support=support, recipe=qp.Recipe(qp.ER(5)))
+    assert result.amplitude.shape == intensity.shape
+
+    with pytest.raises(ImportError, match=r"qoraphase\[plot\]"):
+        result.plot()
+
+
 def test_plot_returns_two_panels_in_2d(data):
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
+
     _, support, intensity = data
     result = qp.reconstruct(intensity, support=support, recipe=qp.Recipe(qp.ER(5)))
     axes = result.plot()
@@ -45,6 +60,9 @@ def test_plot_returns_two_panels_in_2d(data):
 
 
 def test_plot_returns_central_slices_in_3d():
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
+
     _, support, intensity = make_data(shape=(12, 12, 12), m=5, seed=2)
     result = qp.reconstruct(intensity, support=support, recipe=qp.Recipe(qp.ER(5)))
     axes = result.plot()

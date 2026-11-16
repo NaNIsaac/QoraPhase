@@ -47,6 +47,8 @@ uv init --no-workspace --python 3.12 qoraphase-demo
 uv add --directory qoraphase-demo qoraphase
 ```
 
+For `Reconstruction.plot()` and figure scripts, add the optional `plot` extra (`uv add "qoraphase[plot]"` or `pip install "qoraphase[plot]"`).
+
 ## Quick start
 
 This small API check reconstructs a centred synthetic Gaussian intensity, without a data file:
@@ -66,7 +68,7 @@ The shape confirms execution, not reconstruction accuracy. The [tutorial](docs/t
 - [Diagnostics](docs/guides/diagnostics.md), [constraints](docs/guides/constraints.md), [alignment and PRTF](docs/guides/combining.md).
 - [Validation and limitations](docs/guides/validation.md), [research reports](docs/reports/README.md), [CPU performance](docs/perf.md) and [GPU environment](docs/hardware.md).
 - Manual [genetic-algorithm](docs/guides/genetic.md) and [low-pass](docs/guides/low-pass.md) benchmark reproduction; results are preserved with their provenance.
-- [Documentation site and generated API](https://nanisaac.github.io/docs/qoraphase/), [release history](https://github.com/NaNIsaac/QoraPhase/releases) and [citation](CITATION.cff).
+- [Documentation site and generated API](https://nanisaac.github.io/docs/qoraphase/), [changelog](CHANGELOG.md), [release history](https://github.com/NaNIsaac/QoraPhase/releases) and [citation](CITATION.cff).
 
 ## License
 

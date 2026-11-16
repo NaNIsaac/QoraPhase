@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 jobs:
@@ -25,12 +30,12 @@ jobs:
                                   ast.get_docstring(ast.parse(p.read_text(encoding="utf-8"))) or "", re.I)]
           sys.exit(f"no synthetic/measured label in the docstring of: {bad}" if bad else 0)
           EOF
-      - run: uv run --python 3.13 python examples/readme_figure.py
-      - run: uv run --python 3.13 python examples/bench_multistart.py
+      - run: uv run --python 3.13 --extra plot python examples/readme_figure.py
+      - run: uv run --python 3.13 --no-extra plot python examples/bench_multistart.py
       # diagnose.py is for a measured file; feed it a small synthetic one in the same format.
       - name: examples/diagnose.py on a synthetic scan file
         run: |
-          uv run --python 3.13 python -c "
+          uv run --python 3.13 --no-extra plot python -c "
           import numpy as np
           n = 64
           y, x = np.mgrid[:n, :n] - n // 2
@@ -40,4 +45,4 @@ jobs:
           mask[n // 2, :3] = True
           np.savez('$RUNNER_TEMP/scan.npz', intensity=intensity, mask=mask)
           "
-          uv run --python 3.13 python examples/diagnose.py "$RUNNER_TEMP/scan.npz" --key intensity --mask-key mask --no-run
+          uv run --python 3.13 --no-extra plot python examples/diagnose.py "$RUNNER_TEMP/scan.npz" --key intensity --mask-key mask --no-run
